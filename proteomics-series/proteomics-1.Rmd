@@ -1,0 +1,126 @@
+---
+title: 'Proteomics Data Analysis (1/3): Data Acquisition and Cleaning'
+author: "Tony Lin"
+date: "August 5, 2018"
+output: html_document
+---
+
+The analysis of DNA and RNA, the blueprint of life and its carbon copy, has become a staple in the burgeoning field of molecular biology. An emerging and exciting area of study that adds another dimension to our understanding of cellular biology is that of proteomics. The use of mass spectrometry has enabled the identification and quantification of thousands of proteins in a single sample run. In this tutorial series, I will break down the steps on processing a high-throughput proteomics data set derived from mass spectrometry analysis as follows: **1)** data acquisition and cleaning, **2)** data filtering and missing value imputation, and **3)** statistical testing and data interpretation.
+
+
+## Source of Proteomics Data
+
+To obtain a sample data set, I combed through a proteomics data repository called [PRIDE](https://www.ebi.ac.uk/pride/archive/simpleSearch) and found an interesting study on drug resistance in breast cancer cell lines. I downloaded the [raw files](https://www.ebi.ac.uk/pride/archive/projects/PXD002057/files), which are the output from mass spectrometry analysis, and processed them using a software called [MaxQuant](http://www.biochem.mpg.de/5111795/maxquant) to map the spectral data to protein sequences. A total of six raw files, corresponding to three replicates of two cell lines (one resistant, one non-resistant), was used. There are numerous other ways to process mass spectrometry data (e.g. Mascot, SEQUEST, ProteinProspector) so the final data table of protein abundance measurements will vary base on the approach. The starting point for this tutorial is the MaxQuant *ProteinGroups* output file, which can be downloaded [here](https://ucsf.box.com/s/1wt4hjdt3yq9g8fcs8oam1btg66dzt54).
+
+
+## Data Acquisition
+
+The first step is to read the tab-separated data file into R.
+
+```{r echo=FALSE}
+setwd("C:/Users/Tony Lin/Desktop/DataScience+/proteomics-series/")
+```
+
+```{r}
+raw = read.delim("proteinGroups.txt", stringsAsFactors = FALSE, colClasses = "character")
+```
+
+Our raw data is an enormous `r dim(raw)[1]`-by-`r dim(raw)[2]` data frame. Proteins are arranged in rows and their information in columns. The primary columns of interest are those containing intensity measurements, which reflects protein abundance.
+
+```{r}
+grep("^LFQ.intensity", names(raw), value = TRUE)
+```
+
+Again, we have a total of six samples. The *Parental* represents intensity data from the breast cancer cell line SKBR3 while the *Resistant* is an drug-resistant cell line derived from culturing the parentals in the presence of an EGFR inhibitor. For more information regarding the study, please see the original [publication](http://europepmc.org/abstract/MED/26883193).
+
+
+## Data Clean Up
+
+### Remove False Hits
+
+The next step after data acquisition is to clean and organize our data. The first order of business is to remove the false hits, including the contaminants, reverse proteins, and proteins identified by site. These are annotated with a "+" under the columns *Potential.contaminant*, *Reverse*, and *Only.identified.by.site*. We filter the data frame by keeping rows without a "+" annotation in any of the three columns.
+
+```{r message=FALSE, warning=FALSE}
+library(dplyr)
+df = dplyr::filter(raw, Potential.contaminant != "+") %>%
+  dplyr::filter(Reverse != "+") %>%
+  dplyr::filter(Only.identified.by.site != "+")
+```
+
+Often, there is a column indicating the confidence of the protein identification. In our case, that is *Q.value*, which represents the probability that the protein is a false hit. A typical cutoff is set at 0.01. Fortunately, MaxQuant takes care of this operation and all Q values are below the threshold.
+
+```{r}
+summary(as.numeric(df$Q.value))
+```
+
+### Define Protein and Gene IDs
+
+A quick look at *Protein.IDs* and *Fasta.headers* columns tells us that the protein IDs, protein names, and gene IDs are not clearly displayed.
+
+```{r}
+head(df$Protein.IDs)
+head(df$Fasta.headers)
+```
+
+We will use regular expressions to extract the protein names into a column named *Protein.name*, UniProt protein IDs into *Protein*, and gene IDs into *Gene*. Note that some rows may have multiple IDs separated by semicolons. In those instances, we will isolate the first one available.
+
+```{r}
+# Isolate the first ID
+df$Protein.IDs = sub(";.*", "", df$Protein.IDs)
+df$Fasta.headers = sub(";.*", "", df$Fasta.headers)
+
+# Extract Protein name
+regex = regexpr("(?<=_HUMAN.).*(?=.OS)", df$Fasta.headers, perl = TRUE)
+df$Protein.name = regmatches(df$Fasta.headers, regex)
+
+# Extract UniProtID
+regex = regexpr("(?<=\\|).*(?=\\|)", df$Protein.IDs, perl = TRUE)
+df$Protein = regmatches(df$Protein.IDs, regex)
+
+# Extract Gene ID
+regex = regexpr("((?<=\\|[[:alnum:]]{6}\\|).*(?=_HUMAN)|(?<=\\|[[:alnum:]]{10}\\|).*(?=_HUMAN))",
+                df$Protein.IDs, perl = TRUE)
+df$Gene = regmatches(df$Protein.IDs, regex)
+```
+
+
+### Transform Intensity Columns
+
+Due to our function call for reading the data table, all columns are cast as the **character** data type. It will benefit our analysis to convert the intensity columns to the proper **numeric** data type.
+
+```{r}
+intensity.names = grep("^LFQ.intensity", names(raw), value = TRUE)
+df[intensity.names] = sapply(df[intensity.names], as.numeric)
+```
+
+Now, let us examine the distribution of protein intensities in a sample. Below is a histogram of the *Parental_bR1* protein intensities.
+
+```{r echo=FALSE}
+hist(df$LFQ.intensity.Parental_bR1,
+     breaks = 100,
+     xlab = "Intensity",
+     ylab = "Frequency",
+     main = "Distribution of Protein Intensity")
+```
+
+The distribution is clearly skewed to the right with a few highly abundant proteins. To normalize the distribution, it is common practice to log<sub>2</sub> transform the intensity data.
+
+```{r}
+LOG.names = sub("^LFQ.intensity", "LOG2", intensity.names)   # rename intensity columns
+df[LOG.names] = log2(df[intensity.names])
+```
+
+Let's check out the transformed distribution on *Parental_bR1* (much better!):
+
+```{r echo=FALSE}
+hist(df$LOG2.Parental_bR1,
+     breaks = 30,
+     xlab = bquote(log[2]~"( Intensity )"),
+     ylab = "Frequency",
+     main = "Distribution of Transformed Protein Intensity")
+```
+
+
+## Summary
+
+This is the first of three tutorials on proteomics data analysis. I have outlined the steps to read and clean a typical mass spectrometry-based proteomics data set. In the next tutorial, we will examine the data in greater detail. In doing so, we will find that only a handful of proteins are quantified across all samples. In other words, proteins are often picked up in one sample but not in the others. This is known as the missing value problem. Stick around to explore techniques for filtering proteins based on the number of valid values and filling in the missing values using data imputation.

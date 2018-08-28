@@ -1,0 +1,236 @@
+---
+title: 'Proteomics Data Analysis (2/3): Data Filtering and Missing Value Imputation'
+author: "Tony Lin"
+date: "August 27, 2018"
+output: html_document
+---
+
+Welcome to **Part Two** of the three-part tutorial series on proteomics data analysis. The ultimate goal of this exercise is to identify proteins whose abundance is different bewteen the drug-resistant cells and the control. In other words, we are looking for a list of differentially regulated proteins that may shed light on how cells escape the cancer-killing action of a drug. In [**Part One**](https://datascienceplus.com/proteomics-data-analysis-1-3-data-acquisition-and-cleaning/), I have demonstrated the steps to acquiring a proteomics data set and performing data pre-processing. We will pick up from the cleaned data set and confront the missing value problem in proteomics.
+
+Again, the outline for this tutorial series is as follows:
+
+* Data acquisition and cleaning
+* **Data filtering and missing value imputation**
+* Statistical testing and data interpretation
+
+
+## Missing Value Problem
+
+```{r echo=FALSE}
+setwd("C:/Users/Tony Lin/Desktop/DataScience+/proteomics-series/")
+load("proteomics-1.RData")
+```
+
+Although mass spectrometry-based proteomics has the advantage of detecting thousands of proteins from a single experiment, it faces certain challenges. One problem is the presence of missing values in proteomics data. To illustrate this, let's examine the first few rows of the log~2~-transformed and raw protein abundance values.
+
+```{r message=FALSE, warning=FALSE}
+library(dplyr)
+head(select(df, Gene, starts_with("LOG2")))
+head(select(df, Gene, starts_with("LFQ")))
+```
+
+It is hard to miss the `-Inf`, which represent protein intensity measurements of 0 in the raw data set. We consider these data points as missing values, or a lack of quantification in the indicated samples. This is a common issue in proteomics experiments, and it arises due to sample complexity and randomness (or stochasticity) in sampling.
+
+For example, imagine pouring out a bowl of Lucky Charms cereal containing a thousand different marshmallows. Let's say there is only one coveted rainbow marshmallow for every one thousand pieces. The likelihood of your bowl containing the rare shape is disappointingly low. In our situation, there are approximately 20,000 proteins expressed in a given cell, and many in low quantities. Hence, the probability of consistently capturing proteins with low expression across all experiments is small.
+
+
+## Data Filtering
+
+To overcome the missing value problem, we need to remove proteins that are sparsely quantified. The hypothesis is that a protein quantified in only one out of six samples offers insufficient grounds for comparison. In addition, the protein could have been mis-assigned.
+
+One of many filtering schemes is to keep proteins that are quantified in at least two out of three replicates in one condition. To jog your memory, we have two conditions, one drug-resistant cell line and a control, and three replicates each. The significance of replicates will be discussed in **Part 3** of the tutorial. For now, we will briefly clean the data frame and apply filtering.
+
+```{r}
+## Data cleaning: Extract columns of interest
+df = select(df, Protein, Gene, Protein.name, starts_with("LFQ"), starts_with("LOG2"))
+glimpse(df)
+```
+
+```{r}
+## Data filtering function
+filter_valids = function(df, conditions, min_count, at_least_one = FALSE) {
+  # df = data frame containing LOG2 data for filtering and organized by data type
+  # conditions = a character vector dictating the grouping
+  # min_count = a numeric vector of the same length as "conditions" indicating the minimum 
+  #     number of valid values for each condition for retention
+  # at_least_one = TRUE means to keep the row if min_count is met for at least one condition
+  #     FALSE means min_count must be met across all conditions for retention
+  
+  log2.names = grep("^LOG2", names(df), value = TRUE)   # Extract LOG2 column names
+  cond.names = lapply(conditions, # Group column names by conditions
+                      function(x) grep(x, log2.names, value = TRUE, perl = TRUE))
+  
+  cond.filter = sapply(1:length(cond.names), function(i) {
+    df2 = df[cond.names[[i]]]   # Extract columns of interest
+    df2 = as.matrix(df2)   # Cast as matrix for the following command
+    sums = rowSums(is.finite(df2)) # count the number of valid values for each condition
+    sums >= min_count[i]   # Calculates whether min_count requirement is met
+  })
+  
+  if (at_least_one) {
+    df$KEEP = apply(cond.filter, 1, any)
+  } else {
+    df$KEEP = apply(cond.filter, 1, all)
+  }
+  
+  return(df)  # No rows are omitted, filter rules are listed in the KEEP column
+}
+
+
+## Apply filtering
+df.F = filter_valids(df,
+                     conditions = c("Parental", "Resistant"),
+                     min_count = c(2, 2),
+                     at_least_one = TRUE)
+```
+
+The output data frame `df.F` is a copy of `df` with an additional *KEEP* column indicating the rows to retain. We will complete the filtering using the following operation and then check out the first couple of rows.
+
+```{r warning=FALSE}
+df.F = filter(df.F, KEEP)
+head(select(df.F, Gene, starts_with("LOG2")))
+```
+
+Notice that the protein in the first row is quantified in the *Parental* line but not the *Resistant* one. Proteins like this are of great interest to us as they are likely implicated in the mechanism of drug resistance. In addition, note that the final number of proteins after filtering (`r nrow(df.F)`) is roughly 60% the original number (`r nrow(df)`). Filtering reduces our list of proteins to ones quantified in a reasonably consistent manner.
+
+
+## Data Normalization
+
+Before we proceed to imputation, we need to account for technical variability in the amount of sample analyzed by the mass spectrometer from one run to another. This is an issue parallel to the variation in sequencing depth in RNAseq experiments. To normalize out these technical differences, we performed a global median normalization. For each sample, the median of the log~2~-transformed distribution is subtracted from all the values. 
+
+```{r}
+## Data normalization function
+median_centering = function(df) {
+  # df = data frame containing LOG2 columns for normalization
+  LOG2.names = grep("^LOG2", names(df), value = TRUE)
+  
+  df[, LOG2.names] = lapply(LOG2.names, 
+                            function(x) {
+                              LOG2 = df[[x]]
+                              LOG2[!is.finite(LOG2)] = NA   # Exclude missing values from median calculation
+                              gMedian = median(LOG2, na.rm = TRUE)
+                              LOG2 - gMedian
+                            }
+  )
+  
+  return(df)
+}
+
+
+## Normalize data
+df.FN = median_centering(df.F)
+```
+
+The result is that each sample is centered at a log~2~(intensity) of 0.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+hist_sample = function(df) {
+  # df = data frame containing imputed data
+  require(dplyr)
+  require(tidyr)
+  require(ggplot2)
+  require(stringr)
+  
+  LOG2.df = dplyr::select(df, starts_with("LOG2"))
+  
+  # Reshape data into key-value pairs
+  LOG2.df = gather(LOG2.df, "sample", "intensity")
+  
+  # Create labels
+  combine.df = mutate(LOG2.df, sample = sub("^LOG2\\.", "", sample)) %>%
+    mutate(replicate = str_extract(sample, "bR.$")) %>%
+    mutate(sample = sub("_bR.$", "", sample))
+  
+  ggplot(combine.df, aes(x = intensity)) +
+    geom_histogram(alpha = 0.3, binwidth = 0.4) +
+    labs(x = expression("log"[2]*"-transformed Intensity"), y = "Frequency") +
+    facet_grid(replicate ~ sample)
+}
+hist_sample(df.FN)
+```
+
+
+## Data Imputation
+
+After filtering and normalization, some missing values remain. How do we deal with them from here? The statistical approach designed to answer such a question is called imputation. For a thorough discussion of imputation on proteomics data sets, I highly recommend this [article](https://pubs.acs.org/doi/abs/10.1021/acs.jproteome.5b00981) in the Journal of Proteome Research. 
+
+Since missing values are associated with proteins with low levels of expression, we can substitute the missing values with numbers that are considered "small" in each sample. We can define this statistically by drawing from a normal distribution with a mean that is down-shifted from the sample mean and a standard deviation that is a fraction of the standard deviation of the sample distribution. Here's a function that implements this approach:
+
+```{r}
+## Data imputation function
+impute_data = function(df, width = 0.3, downshift = 1.8) {
+  # df = data frame containing filtered 
+  # Assumes missing data (in df) follows a narrowed and downshifted normal distribution
+  # use_keep = filter rows using KEEP column prior to imputation
+  
+  LOG2.names = grep("^LOG2", names(df), value = TRUE)
+  impute.names = sub("^LOG2", "impute", LOG2.names)
+  
+  # Create new columns indicating whether the values are imputed
+  df[impute.names] = lapply(LOG2.names, function(x) !is.finite(df[, x]))
+  
+  # Imputation
+  set.seed(1)
+  df[LOG2.names] = lapply(LOG2.names,
+                          function(x) {
+                            temp = df[[x]]
+                            temp[!is.finite(temp)] = NA
+                            
+                            temp.sd = width * sd(temp[df$KEEP], na.rm = TRUE)   # shrink sd width
+                            temp.mean = mean(temp[df$KEEP], na.rm = TRUE) - 
+                              downshift * sd(temp[df$KEEP], na.rm = TRUE)   # shift mean of imputed values
+
+                            n.missing = sum(is.na(temp))
+                            temp[is.na(temp)] = rnorm(n.missing, mean = temp.mean, sd = temp.sd)                          
+                            return(temp)
+                          })
+  return(df)
+}
+
+
+## Apply imputation
+df.FNI = impute_data(df.FN)
+```
+
+Let's graphically evaluate the results by overlaying the distribution of the imputed values over the original distribution. In doing so, we observe that the number of missing values is greater in the resistant condition compared to the control. Furthermore, the missing values take on a narrow spread at the lower end of the sample distribution, which reflects our notion that low levels of protein expression produce missing data.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+hist_impute = function(df) {
+  # df = data frame containing imputed data
+  require(dplyr)
+  require(tidyr)
+  require(ggplot2)
+  require(stringr)
+  
+  LOG2.df = dplyr::select(df, starts_with("LOG2"))
+  impute.df = dplyr::select(df, starts_with("IMP"))
+  
+  # Reshape data into key-value pairs
+  LOG2.df = gather(LOG2.df, "sample", "intensity")
+  impute.df = gather(impute.df, "sample", "impute")
+  
+  # Combine data
+  combine.df = bind_cols(LOG2.df, impute.df["impute"])
+  
+  # Create labels
+  combine.df = mutate(combine.df, sample = sub("^LOG2\\.", "", sample)) %>%
+    mutate(replicate = str_extract(sample, "bR.$")) %>%
+    mutate(sample = sub("_bR.$", "", sample))
+  
+  ggplot(combine.df, aes(x = intensity, fill = impute)) +
+    geom_histogram(alpha = 0.3, binwidth = 0.4, position = "identity") +
+    labs(x = expression("log"[2]*"-transformed Intensity"), y = "Frequency") +
+    facet_grid(replicate ~ sample) +
+    scale_fill_discrete(name = "Imputed",
+                        breaks = c("FALSE", "TRUE"),
+                        labels = c("-", "+"))
+}
+hist_impute(df.FNI)
+```
+
+
+## Summary
+
+This is the second of three tutorials on proteomics data analysis. I have described the approach to handling the missing value problem in proteomics.
+
+In the final tutorial, we are ready to compare protein expression between the drug-resistant and the control lines. This involves performing a two-sample Welch's t-test on our data to extract proteins that are differentially expressed. Moreover, we will discuss ways to interpret the final output of a high-throughput proteomics experiment. Stay tuned for the revelation of proteins that may play a role in driving the resistance of tumor cells.
