@@ -1,22 +1,24 @@
 ---
-title: "Exploring Bay Area's Bike Share Program"
+title: "Exploring San Francisco Bay Area's Bike Share System"
 author: "Tony Lin"
-date: "August 11, 2018"
+date: "August 29, 2018"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r echo=FALSE}
+setwd("C:/Users/Tony Lin/Desktop/DataScience+/fordgobike/")
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```{r}
+# List of data files
+file_names = list.files(pattern = ".csv")
+```
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+# Read data
+df = lapply(file_names, 
+            function(x) read.csv(x, stringsAsFactors = FALSE))
 ```
 
 ## Including Plots
