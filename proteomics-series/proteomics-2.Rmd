@@ -161,7 +161,6 @@ Since missing values are associated with proteins with low levels of expression,
 impute_data = function(df, width = 0.3, downshift = 1.8) {
   # df = data frame containing filtered 
   # Assumes missing data (in df) follows a narrowed and downshifted normal distribution
-  # use_keep = filter rows using KEEP column prior to imputation
   
   LOG2.names = grep("^LOG2", names(df), value = TRUE)
   impute.names = sub("^LOG2", "impute", LOG2.names)
