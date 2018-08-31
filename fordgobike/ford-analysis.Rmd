@@ -5,28 +5,50 @@ date: "August 29, 2018"
 output: html_document
 ---
 
+Congested streets and slow-crawling traffic are a fact of life in many metropolitan areas, such as New York City, Los Angeles, and Chicago. Bike sharing is an innovative solution to combat such problems, and it works by dispersing a large fleet of publicly-available bikes throughout crowded cities for personal transport. Implemented in 2013, Ford GoBike is the first bike sharing system introduced in the US West Coast. Its 540 stations and 7,000 bikes sprawl across five cities in the San Francisco/Bay Area. As an avid GoBike user and a data fanatic, I am excited to explore, in R, the trip data that has been collected starting in 2017.
+
 ```{r echo=FALSE}
 setwd("C:/Users/Tony Lin/Desktop/DataScience+/fordgobike/")
 ```
 
 
+## Data Acquisition
+
+First, I downloaded the [system data](https://www.fordgobike.com/system-data) from the Ford GoBike website and saved it in my working directory. There are eight separate files, one for all rides in 2017 and one for each month of 2018 up to July:
+
 ```{r}
 # List of data files
 file_names = list.files(pattern = ".csv")
+file_names
 ```
 
+To read the files into R, I iterate through `file_names` using the `lapply` function:
+
 ```{r}
-# Read data
-df = lapply(file_names, 
-            function(x) read.csv(x, stringsAsFactors = FALSE))
+# Read data (this will take some time)
+df_list = lapply(file_names,
+                 function(x) read.csv(x, stringsAsFactors = FALSE))
+
+# Assign name to data frames
+names(df_list) = file_names
 ```
+
+Let's take a glimpse at the headers of the first three data frames in `df_list`:
+
+```{r}
+# Extract column names from the first 3 data frames
+head(sapply(df_list, names), 3)
+```
+
+In each data frame, data on ride duration, starting and ending time/location, and member information are provided. Notice that the 2018 data contains an extra column called `"bike_share_for_all_trip"`. It tracks members who are enrolled in the Bike Share for All program for low-income residents.
+
 
 ## Including Plots
 
 You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## Closing Remarks
+
+Ford GoBike has a older cousin called [Citi Bike](https://www.citibikenyc.com/system-data) in New York City. The system data dates back much further into the past to 2013, which means more data to play with. I encourage you to 
+
