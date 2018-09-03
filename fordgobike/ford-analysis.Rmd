@@ -5,7 +5,7 @@ date: "August 29, 2018"
 output: html_document
 ---
 
-Congested streets and slow-crawling traffic are a fact of life in many metropolitan areas, such as New York City, Los Angeles, and Chicago. Bike sharing is an innovative solution to combat such problems, and it works by dispersing a large fleet of publicly-available bikes throughout crowded cities for personal transport. Implemented in 2013, Ford GoBike is the first bike sharing system introduced in the US West Coast. Its 540 stations and 7,000 bikes sprawl across five cities in the San Francisco/Bay Area. As an avid GoBike user and a data fanatic, I am excited to explore the trip data that has been collected starting in 2017 using R.
+Congested streets and slow-crawling traffic are a fact of life in many metropolitan areas, such as New York City, Los Angeles, and Chicago. Bike sharing is an innovative solution to combat such problems, and it works by dispersing a large fleet of publicly-available bikes throughout crowded cities for personal transport. Implemented in 2013, Ford GoBike is the first bike sharing system introduced in the US West Coast. Its 540 stations and 7,000 bikes sprawl across five cities in the San Francisco/Bay Area. As an avid GoBike user and a data fanatic, I am excited to explore the trip data that has been collected in 2018 using R.
 
 ```{r echo=FALSE}
 setwd("C:/Users/Tony Lin/Desktop/DataScience-tutorial/fordgobike/")
@@ -14,7 +14,7 @@ setwd("C:/Users/Tony Lin/Desktop/DataScience-tutorial/fordgobike/")
 
 ## Data Acquisition
 
-First, I downloaded the [system data](https://www.fordgobike.com/system-data) from the Ford GoBike website and saved it in my working directory. Eight data files are available, one for all rides in 2017 and one for each month of 2018 up to July. I excluded rides in 2017 owing to file 
+First, I downloaded the [system data](https://www.fordgobike.com/system-data) from the Ford GoBike website and saved it in my working directory. Currently, eight data files are available online, a collective one for 2017 and one for each month of 2018 up to July. In this analysis, I will solely focus on data that has been generated in 2018.
 
 ```{r}
 # List of data files
@@ -36,6 +36,8 @@ names(df_list) = file_names
 
 ## Data Pre-processing
 
+### Aggregate Data into a Single Data Frame
+
 Let's look at the headers of the first three data frames in `df_list`:
 
 ```{r}
@@ -43,18 +45,18 @@ Let's look at the headers of the first three data frames in `df_list`:
 head(sapply(df_list, names), 3)
 ```
 
-Data on ride duration, starting and ending time/location, and rider information are provided. Notice that the 2018 data contain an extra column called `"bike_share_for_all_trip"`. It tracks members who are enrolled in the Bike Share for All program for low-income residents.
+Information on ride duration, starting and ending time/location, and usership are provided. Notice that the data contains a column called `"bike_share_for_all_trip"`, which tracks members who are enrolled in the Bike Share for All program for low-income residents.
 
 We will collapse the data frames into one and examine the data structure:
 
 ```{r warning=FALSE, message=FALSE}
 # Cast certain columns as numeric to enable row binding
+df_list[[6]]$start_station_id = as.numeric(df_list[[6]]$start_station_id)
+df_list[[6]]$end_station_id = as.numeric(df_list[[6]]$end_station_id)
 df_list[[7]]$start_station_id = as.numeric(df_list[[7]]$start_station_id)
 df_list[[7]]$end_station_id = as.numeric(df_list[[7]]$end_station_id)
-df_list[[8]]$start_station_id = as.numeric(df_list[[8]]$start_station_id)
-df_list[[8]]$end_station_id = as.numeric(df_list[[8]]$end_station_id)
 
-# Bind rows
+# Bind data frames by rows
 library(dplyr)
 df = bind_rows(df_list)
 
@@ -62,9 +64,28 @@ df = bind_rows(df_list)
 glimpse(df)
 ```
 
+### Format Data Types
 
+Proper data cleaning is essential for downstream analysis. This entails formating the columns into appropriate data types. For instance, `start_time` and `end_time` should be converted into type `Date`. In addition, the `character` columns should take on type `factor`.
 
+```{r}
+# Function to convert character to Date (reference https://www.stat.berkeley.edu/~s133/dates.html)
+library(chron)
+date_convert = function(x) {
+  # x = a charcter vector with format "y-m-d h:m:s"
+  dates = t(as.data.frame(strsplit(x," ")))
+  row.names(dates) = NULL
+  chron(dates = dates[ ,1],times = dates[ ,2],
+        format = c("y-m-d","h:m:s"))
+}
 
+# Convert end_time and start_time to Date
+df$start_time = date_convert(df$start_time)
+df$end_time = date_convert(df$end_time)
+
+# Convert characters to factors
+character_vars = 
+```
 
 
 
