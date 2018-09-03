@@ -5,16 +5,16 @@ date: "August 29, 2018"
 output: html_document
 ---
 
-Congested streets and slow-crawling traffic are a fact of life in many metropolitan areas, such as New York City, Los Angeles, and Chicago. Bike sharing is an innovative solution to combat such problems, and it works by dispersing a large fleet of publicly-available bikes throughout crowded cities for personal transport. Implemented in 2013, Ford GoBike is the first bike sharing system introduced in the US West Coast. Its 540 stations and 7,000 bikes sprawl across five cities in the San Francisco/Bay Area. As an avid GoBike user and a data fanatic, I am excited to explore, in R, the trip data that has been collected starting in 2017.
+Congested streets and slow-crawling traffic are a fact of life in many metropolitan areas, such as New York City, Los Angeles, and Chicago. Bike sharing is an innovative solution to combat such problems, and it works by dispersing a large fleet of publicly-available bikes throughout crowded cities for personal transport. Implemented in 2013, Ford GoBike is the first bike sharing system introduced in the US West Coast. Its 540 stations and 7,000 bikes sprawl across five cities in the San Francisco/Bay Area. As an avid GoBike user and a data fanatic, I am excited to explore the trip data that has been collected starting in 2017 using R.
 
 ```{r echo=FALSE}
-setwd("C:/Users/Tony Lin/Desktop/DataScience+/fordgobike/")
+setwd("C:/Users/Tony Lin/Desktop/DataScience-tutorial/fordgobike/")
 ```
 
 
 ## Data Acquisition
 
-First, I downloaded the [system data](https://www.fordgobike.com/system-data) from the Ford GoBike website and saved it in my working directory. There are eight separate files, one for all rides in 2017 and one for each month of 2018 up to July:
+First, I downloaded the [system data](https://www.fordgobike.com/system-data) from the Ford GoBike website and saved it in my working directory. Eight data files are available, one for all rides in 2017 and one for each month of 2018 up to July. I excluded rides in 2017 owing to file 
 
 ```{r}
 # List of data files
@@ -25,7 +25,7 @@ file_names
 To read the files into R, I iterate through `file_names` using the `lapply` function:
 
 ```{r}
-# Read data (this will take some time)
+# Read data (this will take a second)
 df_list = lapply(file_names,
                  function(x) read.csv(x, stringsAsFactors = FALSE))
 
@@ -33,22 +33,44 @@ df_list = lapply(file_names,
 names(df_list) = file_names
 ```
 
-Let's take a glimpse at the headers of the first three data frames in `df_list`:
+
+## Data Pre-processing
+
+Let's look at the headers of the first three data frames in `df_list`:
 
 ```{r}
 # Extract column names from the first 3 data frames
 head(sapply(df_list, names), 3)
 ```
 
-In each data frame, data on ride duration, starting and ending time/location, and member information are provided. Notice that the 2018 data contains an extra column called `"bike_share_for_all_trip"`. It tracks members who are enrolled in the Bike Share for All program for low-income residents.
+Data on ride duration, starting and ending time/location, and rider information are provided. Notice that the 2018 data contain an extra column called `"bike_share_for_all_trip"`. It tracks members who are enrolled in the Bike Share for All program for low-income residents.
+
+We will collapse the data frames into one and examine the data structure:
+
+```{r warning=FALSE, message=FALSE}
+# Cast certain columns as numeric to enable row binding
+df_list[[7]]$start_station_id = as.numeric(df_list[[7]]$start_station_id)
+df_list[[7]]$end_station_id = as.numeric(df_list[[7]]$end_station_id)
+df_list[[8]]$start_station_id = as.numeric(df_list[[8]]$start_station_id)
+df_list[[8]]$end_station_id = as.numeric(df_list[[8]]$end_station_id)
+
+# Bind rows
+library(dplyr)
+df = bind_rows(df_list)
+
+# Glimpse at the final df
+glimpse(df)
+```
 
 
-## Including Plots
 
-You can also embed plots, for example:
+
+
+
+
 
 
 ## Closing Remarks
 
-Ford GoBike has a older cousin called [Citi Bike](https://www.citibikenyc.com/system-data) in New York City. The system data dates back much further into the past to 2013, which means more data to play with. I encourage you to 
+[Citi Bike](https://www.citibikenyc.com/system-data) is the Ford GoBike for New York City. Its system is more established and its data date back to 2013, which means more data to play with. I encourage you to 
 
