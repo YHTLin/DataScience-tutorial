@@ -34,7 +34,7 @@ names(df_list) = file_names
 ```
 
 
-## Data Pre-processing
+## Data Organization and Cleaning
 
 ### Aggregate Data into a Single Data Frame
 
@@ -60,43 +60,40 @@ df_list[[7]]$end_station_id = as.numeric(df_list[[7]]$end_station_id)
 library(dplyr)
 df = bind_rows(df_list)
 
-# Glimpse at the final df
+# Glimpse at df
 glimpse(df)
 ```
 
-### Reduce Columns
-
-Uninformative columns or those that will not be used in the analysis are removed:
-
-```{r}
-# Filter columns
-df = select(df, -c(end_time, start_station_id, end_station_id, bike_id))
-```
-
-
 ### Format Data Types
 
-Proper data cleaning is essential for downstream analysis. This entails formating the columns into appropriate data types. For instance, `start_time` and `end_time` should be converted into type `Date`. In addition, the `character` columns should take on type `factor`.
+Data cleaning is essential for downstream analysis. This entails formating the columns into appropriate data types and extracting essential data. For instance, I will isolate the month from `start_time` for visualizing bike usage over time. In addition, I will convert `member_birth_year` into `member_age`. FInally, the `character` columns should take on type `factor`.
 
-```{r}
-# Function to convert character to Date (reference https://www.stat.berkeley.edu/~s133/dates.html)
-library(chron)
-date_convert = function(x) {
-  # x = a charcter vector with format "y-m-d h:m:s"
-  dates = t(as.data.frame(strsplit(x," ")))
-  row.names(dates) = NULL
-  chron(dates = dates[ ,1],times = dates[ ,2],
-        format = c("y-m-d","h:m:s"))
-}
+```{r warning=FALSE}
+# Extracting month from start_time
+df = df %>%
+  mutate(start_time = sub(" .*", "", start_time)) %>%
+  mutate(start_month = as.POSIXct(start_time)) %>%
+  mutate(start_month = format(start_month, "%B"))
 
-# Convert end_time and start_time to Date
-df$start_time = date_convert(df$start_time)
-df$end_time = date_convert(df$end_time)
+# Convert birth year to age
+df = df %>%
+  mutate(member_age = 2018 - member_birth_year)
 
 # Convert characters to factors
-character_vars = 
+character_vars = which(sapply(df, is.character))
+df[character_vars] = lapply(df[character_vars], as.factor)
+
+# Remove columns not used in the analysis
+df = select(df, -c(start_time, end_time, start_station_id, end_station_id, bike_id, member_birth_year))
+
+# Glimpse at cleaned df
+glimpse(df)
 ```
 
+The cleaned data frame contains 12 variables on over a million rides.
+
+
+## Data Analysis
 
 
 
