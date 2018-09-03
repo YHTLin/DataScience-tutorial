@@ -69,11 +69,17 @@ glimpse(df)
 Data cleaning is essential for downstream analysis. This entails formating the columns into appropriate data types and extracting essential data. For instance, I will isolate the month from `start_time` for visualizing bike usage over time. In addition, I will convert `member_birth_year` into `member_age`. FInally, the `character` columns should take on type `factor`.
 
 ```{r warning=FALSE}
-# Extracting month from start_time
+# Extract month from start_time
 df = df %>%
-  mutate(start_time = sub(" .*", "", start_time)) %>%
-  mutate(start_month = as.POSIXct(start_time)) %>%
+  mutate(start_month = sub(" .*", "", start_time)) %>%
+  mutate(start_month = as.POSIXct(start_month)) %>%
   mutate(start_month = format(start_month, "%B"))
+
+# Extract hour from start_time
+library(stringr)
+df = df %>%
+  mutate(start_hour = sub("^.{11}", "", start_time)) %>%
+  mutate(start_hour = str_extract(start_hour, "^[0-9]{2}"))
 
 # Convert birth year to age
 df = df %>%
@@ -126,7 +132,7 @@ Next, I will stratify the barplot by `user_type` to reveal information on the ty
 ```{r}
 # Plot barplot
 library(ggplot2)
-ggplot(data = df, aes(start_month)) + 
+ggplot(df, aes(start_month)) + 
   geom_bar() +
   facet_grid(. ~ user_type) +
   xlab("Months in 2018") + 
@@ -154,24 +160,47 @@ ggplot(df_gender, aes(start_month, fill = member_gender)) +
   xlab("Months in 2018") + 
   ylab("Proportion of Rides") +
   ggtitle("Bike Usage by Gender over Time") +
-  guides(fill = guide_legend(title="Gender")) +
+  guides(fill = guide_legend(title = "Gender")) +
   theme_minimal()
 ```
 
 There are roughly three times as many male as female users, and the proportions have not changed over time.
 
-## Distribution of the Age of GoBike Users
+### Bike Usage by Hour
+
+```{r}
+# Organize usage by hour
+hour = df %>%
+  group_by(start_hour) %>%
+  summarise(total = n())
+
+# Plot barplot
+ggplot(hour, aes(x = start_hour, y = total, group = 1)) + 
+  geom_line() +
+  geom_point(color = "red") +
+  xlab("Time in Hours") + 
+  ylab("Number of Rides") +
+  ggtitle("Number of Rides by Hour") +
+  theme_minimal()
+
+```
+
+
+### Distribution of the Age of GoBike Users
 
 
 
 
-## Distribution of Ride Duration
+### Distribution of Ride Duration
 
 
 
 
+### Mapping GoBike Stations
 
+Most used stations?
 
+Peak usage?
 
 
 ## Closing Remarks
