@@ -90,10 +90,86 @@ df = select(df, -c(start_time, end_time, start_station_id, end_station_id, bike_
 glimpse(df)
 ```
 
-The cleaned data frame contains 12 variables on over a million rides.
+The cleaned data frame contains 12 descriptors on over a million rides.
 
 
 ## Data Analysis
+
+### Bike Usage by Month in 2018
+
+Let's examine the GoBike usage over time in 2018:
+
+```{r}
+# Organize month
+df$start_month = factor(df$start_month, 
+                        levels = c("January", "February", "March", "April", "May", "June", "July"))
+
+# Count usage by month
+month_counts = table(df$start_month)
+
+# Plot barplot
+bar = barplot(month_counts,
+              ylim = c(0, 220000),
+              xlab = "Months in 2018",
+              ylab = "Number of Rides",
+              main = "GoBike Usage by Month")
+text(x = bar, y = month_counts,   # Add labels
+     label = month_counts, pos = 3, cex = 0.8, col = "red")  
+```
+
+The plot shows a consistent growth in the number of rides over the months. Six months into 2018, the bike usage more than doubled. In addition, there's a large increase in the number of rides from April to May, which may be associated with warmer weather in the summer months.
+
+### Bike Usage by Customers Versus Subscribers
+
+Next, I will stratify the barplot by `user_type` to reveal information on the typical user.
+
+```{r}
+# Plot barplot
+library(ggplot2)
+ggplot(data = df, aes(start_month)) + 
+  geom_bar() +
+  facet_grid(. ~ user_type) +
+  xlab("Months in 2018") + 
+  ylab("Number of Rides") +
+  ggtitle("Comparison of Usage Between Customers and Subscribers") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))   # Rotate x-axis labels
+```
+
+It is evident that the majority of the rides are made by subscribers of the monthly or yearly plan while only a fraction (~`r round(sum(df$user_type == "Customer") / nrow(df) * 100)`%) come from single-use customers. Proportionally, the number of users in both categories spiked from April to May, which reflects our initial finding.
+
+### Bike Usage by Gender
+
+In my experience, the bikes are predominately operated by males. Let's test that intuition and see whether the gender composition of users evolves over time:
+
+```{r}
+# Organize data by gender
+df_gender = df %>%
+  filter(member_gender %in% c("Male", "Female")) %>%   # Isolate "Male" and "Female" genders
+  mutate(member_gender = droplevels(member_gender))   # Drop unused levels
+
+# Plot barplot
+ggplot(df_gender, aes(start_month, fill = member_gender)) +
+  geom_bar(position = "fill") +
+  xlab("Months in 2018") + 
+  ylab("Proportion of Rides") +
+  ggtitle("Bike Usage by Gender over Time") +
+  guides(fill = guide_legend(title="Gender")) +
+  theme_minimal()
+```
+
+There are roughly three times as many male as female users, and the proportions have not changed over time.
+
+## Distribution of the Age of GoBike Users
+
+
+
+
+## Distribution of Ride Duration
+
+
+
+
 
 
 
