@@ -64,6 +64,16 @@ df = bind_rows(df_list)
 glimpse(df)
 ```
 
+### Reduce Columns
+
+Uninformative columns or those that will not be used in the analysis are removed:
+
+```{r}
+# Filter columns
+df = select(df, -c(end_time, start_station_id, end_station_id, bike_id))
+```
+
+
 ### Format Data Types
 
 Proper data cleaning is essential for downstream analysis. This entails formating the columns into appropriate data types. For instance, `start_time` and `end_time` should be converted into type `Date`. In addition, the `character` columns should take on type `factor`.
