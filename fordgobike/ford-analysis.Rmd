@@ -168,6 +168,8 @@ There are roughly three times as many male as female users, and the proportions 
 
 ### Bike Usage by Hour
 
+The GoBikes are an integral part of my daily commute to work. I suspect that many others use it for the same reason. To explore this hunch, let's track bike usage by the hour:
+
 ```{r}
 # Organize usage by hour
 hour = df %>%
@@ -180,15 +182,28 @@ ggplot(hour, aes(x = start_hour, y = total, group = 1)) +
   geom_point(color = "red") +
   xlab("Time in Hours") + 
   ylab("Number of Rides") +
-  ggtitle("Number of Rides by Hour") +
+  ggtitle("Total Rides by Hour") +
   theme_minimal()
 
 ```
 
+A bimodal curve with peaks at 8 AM and 5 PM confirms my gut feeling that the bike share system is busiest during the commute hours. It should not come as a surprise that the quietest times are in the wee hours of the night.
 
 ### Distribution of the Age of GoBike Users
 
+Up to now, we have focused heavily on bike usage. 
 
+```{r warning=FALSE}
+# Plot histogram
+ggplot(df, aes(member_age)) +
+  geom_histogram(binwidth = 2, alpha = 0.5) +
+  scale_x_continuous(limits = c(10, 100),
+                     breaks = seq(10, 100, by = 4)) +
+  xlab("Age in Years") + 
+  ylab("Number of Rides") +
+  ggtitle("Total Rides by Age") +
+  theme_minimal()
+```
 
 
 ### Distribution of Ride Duration
