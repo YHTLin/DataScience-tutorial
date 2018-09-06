@@ -213,6 +213,19 @@ A bimodal curve with peaks at 8 AM and 5 PM confirms my gut instinct that the bi
 
 ### Distribution of Ride Duration
 
+```{r warning=FALSE}
+# Plot histogram
+ggplot(df, aes(duration_min)) +
+  geom_histogram(binwidth = 2, alpha = 0.5) +
+  scale_x_continuous(limits = c(0, 100),
+                     breaks = seq(0, 100, by = 2)) +
+  xlab("Ride Duration in Minutes") + 
+  ylab("Number of Rides") +
+  ggtitle("Duration of Rides") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90))   # Rotate x-axis labels
+```
+
 
 ### Mapping GoBike Stations
 
