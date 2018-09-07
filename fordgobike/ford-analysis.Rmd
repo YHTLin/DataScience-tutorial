@@ -274,126 +274,74 @@ ggmap(SFmap) +
 
 
 ```{r warning=FALSE, message=FALSE}
-# Function for visualizing starting and ending station usage at a designated time
+# Function for visualizing trips at a designated time
 # Filter for rides taken at 8 AM and grouped by start time and start station
-peak_AM_start = df %>%
-  group_by(start_hour, start_station_longitude, start_station_latitude) %>%
-  rename(station_longitude = start_station_longitude, station_latitude = start_station_latitude) %>%
-  summarise(rides = dplyr::n()) %>%
-  filter(start_hour == "08") %>%
-  mutate(type = "Start Stations")
-
-# Filter for rides taken at 8 AM and grouped by start time and end station
-peak_AM_end = df %>%
-  group_by(start_hour, end_station_longitude, end_station_latitude) %>%
-  rename(station_longitude = end_station_longitude, station_latitude = end_station_latitude) %>%
-  summarise(rides = dplyr::n()) %>%
-  filter(start_hour == "08") %>%
-  mutate(type = "End Stations")
-
-# Combine starting and ending stations into one data frame
-peak_AM = bind_rows(peak_AM_start, peak_AM_end)
-
-# Convert "type" to factor
-peak_AM$type = factor(peak_AM$type, 
-                      levels = c("Start Stations", "End Stations"))
-
-# Plot start stations
-ggmap(SFmap) +
-  geom_point(data = peak_AM, 
-             mapping = aes(x = station_longitude, 
-                           y = station_latitude, 
-                           size = rides,   # scale point size by number of rides
-                           alpha = rides),   # scale point transparency size by number of rides
-             color = "red") +
-  geom_point(data = df_stations, 
-             mapping = aes(x = start_station_longitude, 
-                           y = start_station_latitude),
-             size = 0.8,
-             color = "blue") +
-  facet_grid(. ~ type) +
-  scale_x_continuous(limits = c(-122.45, -122.375)) +   # trim x-axis range
-  scale_y_continuous(limits = c(37.74, 37.81)) +   # trim y-axis range
-  scale_size_continuous("Number of Rides",
-                        range = c(1, 8),
-                        breaks = seq(0, 10000, by = 1000)) +   # control point size
-  scale_alpha_continuous("Number of Rides",
-                         range = c(0.1, 0.8),
-                         breaks = seq(0, 10000, by = 1000)) +   # control transparency
-    ggtitle("8 AM Bike Rides") +
-  theme_void()
+map_trips = function(hour, plot_title) {
+  # hour = a character of lenth one indicating the hour of interest (e.g. "07" for 7 AM and "15" for 3 PM)
+  # plot_title = a character of length one indicating title of plot
+  
+  peak_start = df %>%
+    group_by(start_hour, start_station_longitude, start_station_latitude) %>%
+    rename(station_longitude = start_station_longitude, 
+           station_latitude = start_station_latitude) %>%
+    summarise(rides = dplyr::n()) %>%
+    filter(start_hour == "08") %>%
+    mutate(type = "Start Stations")
+  
+  # Filter for rides taken at 8 AM and grouped by start time and end station
+  peak_end = df %>%
+    group_by(start_hour, end_station_longitude, end_station_latitude) %>%
+    rename(station_longitude = end_station_longitude, 
+           station_latitude = end_station_latitude) %>%
+    summarise(rides = dplyr::n()) %>%
+    filter(start_hour == "08") %>%
+    mutate(type = "End Stations")
+  
+  # Combine starting and ending stations into one data frame
+  df_peak = bind_rows(peak_start, peak_end)
+  
+  # Convert "type" to factor
+  df_peak$type = factor(df_peak$type, 
+                        levels = c("Start Stations", "End Stations"))
+  
+  # Plot start stations
+  ggmap(SFmap) +
+    geom_point(data = df_peak, 
+               mapping = aes(x = station_longitude, 
+                             y = station_latitude, 
+                             size = rides,   # scale point size by number of rides
+                             alpha = rides),   # scale point transparency size by number of rides
+               color = "red") +
+    geom_point(data = df_stations,   # mark all stations 
+               mapping = aes(x = start_station_longitude, 
+                             y = start_station_latitude),
+               size = 0.8,
+               color = "blue") +
+    facet_grid(. ~ type) +
+    scale_x_continuous(limits = c(-122.45, -122.375)) +   # trim x-axis range
+    scale_y_continuous(limits = c(37.74, 37.81)) +   # trim y-axis range
+    scale_size_continuous("Number of Rides",
+                          range = c(1, 8),
+                          breaks = seq(0, 10000, by = 1000)) +   # control point size
+    scale_alpha_continuous("Number of Rides",
+                           range = c(0.1, 0.8),
+                           breaks = seq(0, 10000, by = 1000)) +   # control transparency
+      ggtitle(plot_title) +
+    theme_void()
+}
 ```
 
 
 ```{r warning=FALSE, message=FALSE}
-# Filter for rides taken at 5 PM and grouped by start time and start station
-peak_PM_start = df %>%
-  group_by(start_hour, start_station_longitude, start_station_latitude) %>%
-  summarise(rides = dplyr::n()) %>%
-  filter(start_hour == "17")
-
-# Plot start stations
-ggmap(SFmap) +
-  geom_point(data = peak_PM_start, 
-             mapping = aes(x = start_station_longitude, 
-                           y = start_station_latitude, 
-                           size = rides,   # scale point size by number of rides
-                           alpha = rides),   # scale point transparency size by number of rides
-             color = "red") +
-  geom_point(data = df_stations, 
-             mapping = aes(x = start_station_longitude, 
-                           y = start_station_latitude),
-             size = 0.8,
-             color = "blue") +
-  scale_x_continuous(limits = c(-122.45, -122.375)) +   # trim x-axis range
-  scale_y_continuous(limits = c(37.74, 37.81)) +   # trim y-axis range
-  scale_size_continuous("Number of Rides",
-                        range = c(1, 8),
-                        breaks = seq(0, 10000, by = 500)) +   # control point size
-  scale_alpha_continuous("Number of Rides", 
-                         range = c(0.1, 0.8),
-                         breaks = seq(0, 10000, by = 500)) +   # control transparency
-  ggtitle("5 PM - Start Stations") +
-  theme_void()
+# Plot trips at 8 AM
+map_trips("08", "8 AM Trips")
 ```
 
 
 ```{r warning=FALSE, message=FALSE}
-# Filter for rides taken at 5 PM and grouped by start time and end station
-peak_PM_end = df %>%
-  group_by(start_hour, end_station_longitude, end_station_latitude) %>%
-  summarise(rides = dplyr::n()) %>%
-  filter(start_hour == "17")
-
-# Plot start stations
-ggmap(SFmap) +
-  geom_point(data = peak_PM_end, 
-             mapping = aes(x = end_station_longitude, 
-                           y = end_station_latitude, 
-                           size = rides,   # scale point size by number of rides
-                           alpha = rides),   # scale point transparency size by number of rides
-             color = "red") +
-  geom_point(data = df_stations, 
-             mapping = aes(x = start_station_longitude, 
-                           y = start_station_latitude),
-             size = 0.8,
-             color = "blue") +
-  scale_x_continuous(limits = c(-122.45, -122.375)) +   # trim x-axis range
-  scale_y_continuous(limits = c(37.74, 37.81)) +   # trim y-axis range
-  scale_size_continuous("Number of Rides", 
-                        range = c(1, 8),
-                        breaks = seq(0, 10000, by = 1000)) +   # control point size
-  scale_alpha_continuous("Number of Rides", 
-                         range = c(0.1, 0.8),
-                         breaks = seq(0, 10000, by = 1000)) +   # control transparency
-  ggtitle("5 PM - End Stations") +
-  theme_void()
+# Plot trips at 5 PM
+map_trips("17", "5 PM Trips")
 ```
-
-Most used stations?
-
-Peak usage?
-
 
 
 
@@ -402,7 +350,7 @@ Peak usage?
 df_test = df %>%
   filter(start_hour == "17")
 
-# Plot start stations
+# Plot start stations using heatmap
 ggmap(SFmap) +
   geom_density_2d(aes(x = end_station_longitude, y = end_station_latitude), data = df_test) +
   stat_density2d(data = df_test, 
