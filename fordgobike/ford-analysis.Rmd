@@ -238,11 +238,15 @@ A bimodal curve with peaks at 8 AM and 5 PM confirms my gut instinct that the bi
 ### GoBike Station Usage at Peak Hours
 
 ```{r warning=FALSE, message=FALSE}
-library(ggmap)
+library(ggmap)   # for retreiving Google Maps
 SFmap = get_map("San Francisco",
                 maptype = "terrain",
-                source = "google")
-ggmap(SFmap)
+                source = "google",
+                zoom = 14)
+ggmap(SFmap) +
+  geom_point(df, aes(x = start_station_longitude, y = start_station_latitude), 
+             color = "red")
+
 ```
 
 
