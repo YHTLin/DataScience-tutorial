@@ -19,7 +19,7 @@ setwd("C:/Users/Tony Lin/Desktop/DataScience-tutorial/fordgobike/")
 * The median age of users is 35 with a standard deviation of 10.5.
 * More than 90% of the rides are under 30 minutes.
 * The peak hours across all rides in 2018 are 8 AM and 5 PM, which align with the typical working hours.
-* Bike sharing is likely a secondary means of transportation behind the major transit systems, such as the Bay Area Rapid Transit, Caltrain, and San Francisco Ferry.
+* Bike sharing is likely a secondary means of transportation behind major transit systems, such as the Bay Area Rapid Transit, Caltrain, and San Francisco Ferry.
 
 ## Data Acquisition
 
@@ -285,7 +285,7 @@ map_trips = function(hour, plot_title) {
     rename(station_longitude = start_station_longitude, 
            station_latitude = start_station_latitude) %>%
     summarise(rides = dplyr::n()) %>%
-    filter(start_hour == "08") %>%
+    filter(start_hour == hour) %>%
     mutate(type = "Start Stations")
   
   # Filter for rides taken at 8 AM and grouped by start time and end station
@@ -294,7 +294,7 @@ map_trips = function(hour, plot_title) {
     rename(station_longitude = end_station_longitude, 
            station_latitude = end_station_latitude) %>%
     summarise(rides = dplyr::n()) %>%
-    filter(start_hour == "08") %>%
+    filter(start_hour == hour) %>%
     mutate(type = "End Stations")
   
   # Combine starting and ending stations into one data frame
@@ -304,7 +304,7 @@ map_trips = function(hour, plot_title) {
   df_peak$type = factor(df_peak$type, 
                         levels = c("Start Stations", "End Stations"))
   
-  # Plot start stations
+  # Plot trips
   ggmap(SFmap) +
     geom_point(data = df_peak, 
                mapping = aes(x = station_longitude, 
@@ -344,24 +344,6 @@ map_trips("17", "5 PM Trips")
 ```
 
 
-
-```{r eval=FALSE}
-# Filter for rides taken at 5 PM
-df_test = df %>%
-  filter(start_hour == "17")
-
-# Plot start stations using heatmap
-ggmap(SFmap) +
-  geom_density_2d(aes(x = end_station_longitude, y = end_station_latitude), data = df_test) +
-  stat_density2d(data = df_test, 
-    aes(x = end_station_longitude, y = end_station_latitude, fill = ..level.., alpha = ..level..), size = 0.01, 
-    bins = 16, geom = "polygon") + scale_fill_gradient(low = "green", high = "red", 
-    guide = FALSE) + scale_alpha(range = c(0, 0.3), guide = FALSE) +
-  scale_x_continuous(limits = c(-122.45, -122.375)) +   # trim x-axis range
-  scale_y_continuous(limits = c(37.74, 37.81)) +   # trim y-axis range
-  ggtitle("5 PM - end Stations") +
-  theme_void()
-```
 
 
 
