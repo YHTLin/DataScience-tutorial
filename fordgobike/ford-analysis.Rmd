@@ -270,11 +270,13 @@ ggmap(SFmap) +
   geom_point(data = stations_df, 
              mapping = aes(x = start_station_longitude, 
                            y = start_station_latitude, 
-                           size = rides),   # Scale point size by number of rides
+                           size = rides,   # scale point size by number of rides
+                           alpha = rides),   # scale point transparency size by number of rides
              color = "red") +
   scale_x_continuous(limits = c(-122.45, -122.375)) +   # trim x-axis range
   scale_y_continuous(limits = c(37.735, 37.81)) +   # trim y-axis range
-  scale_size_continuous(range = c(3, 7)) +   # control size scales
+  scale_size_continuous(range = c(3, 7)) +   # control point size
+  scale_alpha_continuous(range = c(0.1, 1)) +   # control transparency
   theme_void()
 ```
 
