@@ -237,16 +237,45 @@ A bimodal curve with peaks at 8 AM and 5 PM confirms my gut instinct that the bi
 
 ### GoBike Station Usage at Peak Hours
 
+Given our analysis of peak usage hours, one tempting question is whether we can find a pattern of travel 
+
 ```{r warning=FALSE, message=FALSE}
 library(ggmap)   # for retreiving Google Maps
+# Obtain map of San Francisco
 SFmap = get_map("San Francisco",
                 maptype = "terrain",
                 source = "google",
-                zoom = 14)
-ggmap(SFmap) +
-  geom_point(df, aes(x = start_station_longitude, y = start_station_latitude), 
-             color = "red")
+                zoom = 13)
 
+# Summarize data to report number of rides while grouping by starting time and location
+stations_df = df %>%
+  group_by(start_hour, start_station_longitude, start_station_latitude) %>%
+  summarise(rides = dplyr::n())
+
+# Plot map and label stations
+ggmap(SFmap) +
+  geom_point(data = stations_df, 
+             mapping = aes(x = start_station_longitude, 
+                           y = start_station_latitude), 
+             color = "red") +
+  scale_x_continuous(limits = c(-122.45, -122.375)) +   # trim x-axis range
+  scale_y_continuous(limits = c(37.735, 37.81)) +   # trim y-axis range
+  theme_void()
+```
+
+
+```{r warning=FALSE, message=FALSE}
+# Plot map and label stations
+ggmap(SFmap) +
+  geom_point(data = stations_df, 
+             mapping = aes(x = start_station_longitude, 
+                           y = start_station_latitude, 
+                           size = rides),   # Scale point size by number of rides
+             color = "red") +
+  scale_x_continuous(limits = c(-122.45, -122.375)) +   # trim x-axis range
+  scale_y_continuous(limits = c(37.735, 37.81)) +   # trim y-axis range
+  scale_size_continuous(range = c(3, 7)) +   # control size scales
+  theme_void()
 ```
 
 
