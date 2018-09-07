@@ -12,6 +12,15 @@ setwd("C:/Users/Tony Lin/Desktop/DataScience-tutorial/fordgobike/")
 ```
 
 
+## Highlights
+* The number of rides more than doubled from January to June of 2018.
+* Monthly and yearly subscribers completed more than five times the number of rides compared to customers who hold single-use or day-ride passes.
+* Males dominate over females in the number rides taken at 3:1.
+* The median age of users is 35 with a standard deviation of 10.5.
+* More than 90% of the rides are under 30 minutes.
+* The peak usage hours across all rides in 2018 occur at 8 AM and 5 PM, which aligns with typical working hours.
+* Bike sharing is likely a secondary means of transportation behind the widespread rail transit systems, such as the Bay Area Rapid Transit or Caltrain.
+
 ## Data Acquisition
 
 First, I downloaded the [system data](https://www.fordgobike.com/system-data) from the Ford GoBike website and saved it in my working directory. Currently, eight data files are available online, a collective file for 2017 and one for each month of 2018 up to August. In this analysis, I will solely focus on data that has been generated in 2018.
