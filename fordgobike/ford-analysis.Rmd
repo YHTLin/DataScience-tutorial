@@ -168,7 +168,7 @@ ggplot(df_gender, aes(start_month, fill = member_gender)) +
   xlab("Months in 2018") + 
   ylab("Proportion of Rides") +
   ggtitle("Bike Usage by Gender over Time") +
-  guides(fill = guide_legend(title = "Gender")) +
+  scale_fill_discrete("Gender") +
   theme_minimal()
 ```
 
@@ -248,42 +248,176 @@ SFmap = get_map("San Francisco",
                 zoom = 13)
 
 # Summarize data to report number of rides while grouping by starting time and location
-stations_df = df %>%
+df_stations = df %>%
   group_by(start_hour, start_station_longitude, start_station_latitude) %>%
   summarise(rides = dplyr::n())
 
 # Plot map and label stations
 ggmap(SFmap) +
-  geom_point(data = stations_df, 
+  geom_point(data = df_stations, 
              mapping = aes(x = start_station_longitude, 
                            y = start_station_latitude), 
              color = "red") +
   scale_x_continuous(limits = c(-122.45, -122.375)) +   # trim x-axis range
-  scale_y_continuous(limits = c(37.735, 37.81)) +   # trim y-axis range
+  scale_y_continuous(limits = c(37.74, 37.81)) +   # trim y-axis range
   theme_void()
 ```
 
 
 ```{r warning=FALSE, message=FALSE}
-# Plot map and label stations
+# Filter for rides taken at 8 AM and grouped by start time and start station
+peak_AM_start = df %>%
+  group_by(start_hour, start_station_longitude, start_station_latitude) %>%
+  summarise(rides = dplyr::n()) %>%
+  filter(start_hour == "08")
+
+# Plot start stations
 ggmap(SFmap) +
-  geom_point(data = stations_df, 
+  geom_point(data = peak_AM_start, 
              mapping = aes(x = start_station_longitude, 
                            y = start_station_latitude, 
                            size = rides,   # scale point size by number of rides
                            alpha = rides),   # scale point transparency size by number of rides
              color = "red") +
+  geom_point(data = df_stations, 
+             mapping = aes(x = start_station_longitude, 
+                           y = start_station_latitude),
+             size = 0.8,
+             color = "blue") +
   scale_x_continuous(limits = c(-122.45, -122.375)) +   # trim x-axis range
-  scale_y_continuous(limits = c(37.735, 37.81)) +   # trim y-axis range
-  scale_size_continuous(range = c(3, 7)) +   # control point size
-  scale_alpha_continuous(range = c(0.1, 1)) +   # control transparency
+  scale_y_continuous(limits = c(37.74, 37.81)) +   # trim y-axis range
+  scale_size_continuous("Number of Rides",
+                        range = c(1, 8),
+                        breaks = seq(0, 10000, by = 1000)) +   # control point size
+  scale_alpha_continuous("Number of Rides",
+                         range = c(0.1, 0.8),
+                         breaks = seq(0, 10000, by = 1000)) +   # control transparency
+    ggtitle("8 AM - Start Stations") +
+  theme_void()
+```
+
+```{r warning=FALSE, message=FALSE}
+# Filter for rides taken at 8 AM and grouped by start time and end station
+peak_AM_end = df %>%
+  group_by(start_hour, end_station_longitude, end_station_latitude) %>%
+  summarise(rides = dplyr::n()) %>%
+  filter(start_hour == "08")
+
+# Plot start stations
+ggmap(SFmap) +
+  geom_point(data = peak_AM_end, 
+             mapping = aes(x = end_station_longitude, 
+                           y = end_station_latitude, 
+                           size = rides,   # scale point size by number of rides
+                           alpha = rides),   # scale point transparency size by number of rides
+             color = "red") +
+  geom_point(data = df_stations, 
+             mapping = aes(x = start_station_longitude, 
+                           y = start_station_latitude),
+             size = 0.8,
+             color = "blue") +
+  scale_x_continuous(limits = c(-122.45, -122.375)) +   # trim x-axis range
+  scale_y_continuous(limits = c(37.74, 37.81)) +   # trim y-axis range
+  scale_size_continuous("Number of Rides",
+                        range = c(1, 8),
+                        breaks = seq(0, 10000, by = 500)) +   # control point size
+  scale_alpha_continuous("Number of Rides",
+                         range = c(0.1, 0.8),
+                         breaks = seq(0, 10000, by = 500)) +   # control transparency
+  ggtitle("8 AM - End Stations") +
+  theme_void()
+```
+
+```{r warning=FALSE, message=FALSE}
+# Filter for rides taken at 5 PM and grouped by start time and start station
+peak_PM_start = df %>%
+  group_by(start_hour, start_station_longitude, start_station_latitude) %>%
+  summarise(rides = dplyr::n()) %>%
+  filter(start_hour == "17")
+
+# Plot start stations
+ggmap(SFmap) +
+  geom_point(data = peak_PM_start, 
+             mapping = aes(x = start_station_longitude, 
+                           y = start_station_latitude, 
+                           size = rides,   # scale point size by number of rides
+                           alpha = rides),   # scale point transparency size by number of rides
+             color = "red") +
+  geom_point(data = df_stations, 
+             mapping = aes(x = start_station_longitude, 
+                           y = start_station_latitude),
+             size = 0.8,
+             color = "blue") +
+  scale_x_continuous(limits = c(-122.45, -122.375)) +   # trim x-axis range
+  scale_y_continuous(limits = c(37.74, 37.81)) +   # trim y-axis range
+  scale_size_continuous("Number of Rides",
+                        range = c(1, 8),
+                        breaks = seq(0, 10000, by = 500)) +   # control point size
+  scale_alpha_continuous("Number of Rides", 
+                         range = c(0.1, 0.8),
+                         breaks = seq(0, 10000, by = 500)) +   # control transparency
+  ggtitle("5 PM - Start Stations") +
   theme_void()
 ```
 
 
+```{r warning=FALSE, message=FALSE}
+# Filter for rides taken at 5 PM and grouped by start time and end station
+peak_PM_end = df %>%
+  group_by(start_hour, end_station_longitude, end_station_latitude) %>%
+  summarise(rides = dplyr::n()) %>%
+  filter(start_hour == "17")
+
+# Plot start stations
+ggmap(SFmap) +
+  geom_point(data = peak_PM_end, 
+             mapping = aes(x = end_station_longitude, 
+                           y = end_station_latitude, 
+                           size = rides,   # scale point size by number of rides
+                           alpha = rides),   # scale point transparency size by number of rides
+             color = "red") +
+  geom_point(data = df_stations, 
+             mapping = aes(x = start_station_longitude, 
+                           y = start_station_latitude),
+             size = 0.8,
+             color = "blue") +
+  scale_x_continuous(limits = c(-122.45, -122.375)) +   # trim x-axis range
+  scale_y_continuous(limits = c(37.74, 37.81)) +   # trim y-axis range
+  scale_size_continuous("Number of Rides", 
+                        range = c(1, 8),
+                        breaks = seq(0, 10000, by = 1000)) +   # control point size
+  scale_alpha_continuous("Number of Rides", 
+                         range = c(0.1, 0.8),
+                         breaks = seq(0, 10000, by = 1000)) +   # control transparency
+  ggtitle("5 PM - End Stations") +
+  theme_void()
+```
+
 Most used stations?
 
 Peak usage?
+
+
+
+
+```{r eval=FALSE}
+# Filter for rides taken at 5 PM
+df_test = df %>%
+  filter(start_hour == "17")
+
+# Plot start stations
+ggmap(SFmap) +
+  geom_density_2d(aes(x = end_station_longitude, y = end_station_latitude), data = df_test) +
+  stat_density2d(data = df_test, 
+    aes(x = end_station_longitude, y = end_station_latitude, fill = ..level.., alpha = ..level..), size = 0.01, 
+    bins = 16, geom = "polygon") + scale_fill_gradient(low = "green", high = "red", 
+    guide = FALSE) + scale_alpha(range = c(0, 0.3), guide = FALSE) +
+  scale_x_continuous(limits = c(-122.45, -122.375)) +   # trim x-axis range
+  scale_y_continuous(limits = c(37.74, 37.81)) +   # trim y-axis range
+  ggtitle("5 PM - end Stations") +
+  theme_void()
+```
+
 
 
 ## Closing Remarks
