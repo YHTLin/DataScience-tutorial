@@ -15,15 +15,15 @@ setwd("C:/Users/Tony Lin/Desktop/DataScience-tutorial/fordgobike/")
 ## Highlights
 * The number of rides more than doubled from January to June of 2018.
 * Monthly and yearly subscribers completed more than five times the number of rides compared to customers who hold single-use or day-ride passes.
-* Males dominate over females in the number rides taken at 3:1.
+* The ratio of male to female users is 3:1.
 * The median age of users is 35 with a standard deviation of 10.5.
 * More than 90% of the rides are under 30 minutes.
-* The peak usage hours across all rides in 2018 occur at 8 AM and 5 PM, which aligns with typical working hours.
-* Bike sharing is likely a secondary means of transportation behind the widespread rail transit systems, such as the Bay Area Rapid Transit or Caltrain.
+* The peak hours across all rides in 2018 are 8 AM and 5 PM, which align with the typical working hours.
+* Bike sharing is likely a secondary means of transportation behind the major transit systems, such as the Bay Area Rapid Transit, Caltrain, and San Francisco Ferry.
 
 ## Data Acquisition
 
-First, I downloaded the [system data](https://www.fordgobike.com/system-data) from the Ford GoBike website and saved it in my working directory. Currently, eight data files are available online, a collective file for 2017 and one for each month of 2018 up to August. In this analysis, I will solely focus on data that has been generated in 2018.
+First, I downloaded the [system data](https://www.fordgobike.com/system-data) from the Ford GoBike website and saved it in my working directory. Currently, eight data files are available online, a collective file for 2017 and one for each month of 2018 up to August. In this analysis, I will solely focus on data that has been generated in 2018, up to August.
 
 ```{r}
 # List of data files
@@ -101,8 +101,8 @@ df = df %>%
   mutate(duration_min = duration_sec / 60)
 
 # Convert characters to factors
-character_vars = which(sapply(df, is.character))
-df[character_vars] = lapply(df[character_vars], as.factor)
+df = df %>%
+  mutate_if(is.character, as.factor)
 
 # Remove columns not used in the analysis
 df = select(df, -c(start_time, end_time, start_station_id, end_station_id, bike_id, member_birth_year, duration_sec))
@@ -274,17 +274,35 @@ ggmap(SFmap) +
 
 
 ```{r warning=FALSE, message=FALSE}
+# Function for visualizing starting and ending station usage at a designated time
 # Filter for rides taken at 8 AM and grouped by start time and start station
 peak_AM_start = df %>%
   group_by(start_hour, start_station_longitude, start_station_latitude) %>%
+  rename(station_longitude = start_station_longitude, station_latitude = start_station_latitude) %>%
   summarise(rides = dplyr::n()) %>%
-  filter(start_hour == "08")
+  filter(start_hour == "08") %>%
+  mutate(type = "Start Stations")
+
+# Filter for rides taken at 8 AM and grouped by start time and end station
+peak_AM_end = df %>%
+  group_by(start_hour, end_station_longitude, end_station_latitude) %>%
+  rename(station_longitude = end_station_longitude, station_latitude = end_station_latitude) %>%
+  summarise(rides = dplyr::n()) %>%
+  filter(start_hour == "08") %>%
+  mutate(type = "End Stations")
+
+# Combine starting and ending stations into one data frame
+peak_AM = bind_rows(peak_AM_start, peak_AM_end)
+
+# Convert "type" to factor
+peak_AM$type = factor(peak_AM$type, 
+                      levels = c("Start Stations", "End Stations"))
 
 # Plot start stations
 ggmap(SFmap) +
-  geom_point(data = peak_AM_start, 
-             mapping = aes(x = start_station_longitude, 
-                           y = start_station_latitude, 
+  geom_point(data = peak_AM, 
+             mapping = aes(x = station_longitude, 
+                           y = station_latitude, 
                            size = rides,   # scale point size by number of rides
                            alpha = rides),   # scale point transparency size by number of rides
              color = "red") +
@@ -293,6 +311,7 @@ ggmap(SFmap) +
                            y = start_station_latitude),
              size = 0.8,
              color = "blue") +
+  facet_grid(. ~ type) +
   scale_x_continuous(limits = c(-122.45, -122.375)) +   # trim x-axis range
   scale_y_continuous(limits = c(37.74, 37.81)) +   # trim y-axis range
   scale_size_continuous("Number of Rides",
@@ -301,41 +320,10 @@ ggmap(SFmap) +
   scale_alpha_continuous("Number of Rides",
                          range = c(0.1, 0.8),
                          breaks = seq(0, 10000, by = 1000)) +   # control transparency
-    ggtitle("8 AM - Start Stations") +
+    ggtitle("8 AM Bike Rides") +
   theme_void()
 ```
 
-```{r warning=FALSE, message=FALSE}
-# Filter for rides taken at 8 AM and grouped by start time and end station
-peak_AM_end = df %>%
-  group_by(start_hour, end_station_longitude, end_station_latitude) %>%
-  summarise(rides = dplyr::n()) %>%
-  filter(start_hour == "08")
-
-# Plot start stations
-ggmap(SFmap) +
-  geom_point(data = peak_AM_end, 
-             mapping = aes(x = end_station_longitude, 
-                           y = end_station_latitude, 
-                           size = rides,   # scale point size by number of rides
-                           alpha = rides),   # scale point transparency size by number of rides
-             color = "red") +
-  geom_point(data = df_stations, 
-             mapping = aes(x = start_station_longitude, 
-                           y = start_station_latitude),
-             size = 0.8,
-             color = "blue") +
-  scale_x_continuous(limits = c(-122.45, -122.375)) +   # trim x-axis range
-  scale_y_continuous(limits = c(37.74, 37.81)) +   # trim y-axis range
-  scale_size_continuous("Number of Rides",
-                        range = c(1, 8),
-                        breaks = seq(0, 10000, by = 500)) +   # control point size
-  scale_alpha_continuous("Number of Rides",
-                         range = c(0.1, 0.8),
-                         breaks = seq(0, 10000, by = 500)) +   # control transparency
-  ggtitle("8 AM - End Stations") +
-  theme_void()
-```
 
 ```{r warning=FALSE, message=FALSE}
 # Filter for rides taken at 5 PM and grouped by start time and start station
