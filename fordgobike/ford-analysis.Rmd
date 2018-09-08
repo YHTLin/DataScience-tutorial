@@ -282,12 +282,12 @@ df_transit = data.frame(name = c("Embarcadeo BART Station",
                                  "Civic Center BART Station", 
                                  "16th St Mission BART Station",
                                  "24th St Mission BART Station"),
+                        system = c("BART", "FERRY", "CALTRAIN", rep("BART", 5)),
                         longitude = c(-122.397222, -122.3937, -122.394444, -122.401942, -122.408, -122.413498, -122.420042, -122.4187),
                         latitude = c(37.793056, 37.7955, 37.776389, 37.789355, 37.784, 37.779861, 37.764847, 37.752))
 
 # Function for visualizing trips at a designated time
 # Filter for rides taken at 8 AM and grouped by start time and start station
-library(ggrepel)   # for labeling stations
 map_trips = function(hour, plot_title) {
   # hour = a character of lenth one indicating the hour of interest (e.g. "07" for 7 AM and "15" for 3 PM)
   # plot_title = a character of length one indicating title of plot
@@ -326,10 +326,8 @@ map_trips = function(hour, plot_title) {
                color = "red") +
     geom_point(data = df_transit,
                mapping = aes(x = longitude,
-                             y = latitude,
-                             label = name),
-               size = 0.8) +
-
+                             y = latitude, 
+                             color = system)) +
     facet_grid(. ~ type) +
     scale_x_continuous(limits = c(-122.45, -122.375)) +   # trim x-axis range
     scale_y_continuous(limits = c(37.74, 37.81)) +   # trim y-axis range
@@ -339,6 +337,7 @@ map_trips = function(hour, plot_title) {
     scale_alpha_continuous("Number of Rides",
                            range = c(0.1, 0.8),
                            breaks = seq(0, 10000, by = 1000)) +   # control transparency
+    scale_color_discrete("Transit System")
       ggtitle(plot_title) +
     theme_void()
 }
