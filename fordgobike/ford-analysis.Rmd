@@ -276,15 +276,16 @@ ggmap(SFmap) +
 # Coordinates for stations of major transit systems
 df_transit = data.frame(name = c("Embarcadeo BART Station", 
                                  "SF Ferry Building", 
-                                 "CalTrain Station", 
+                                 "King St CalTrain Station", 
                                  "Montgomery BART Station", 
                                  "Powell BART Station", 
                                  "Civic Center BART Station", 
                                  "16th St Mission BART Station",
-                                 "24th St Mission BART Station"),
-                        system = c("BART", "FERRY", "CALTRAIN", rep("BART", 5)),
-                        longitude = c(-122.397222, -122.3937, -122.394444, -122.401942, -122.408, -122.413498, -122.420042, -122.4187),
-                        latitude = c(37.793056, 37.7955, 37.776389, 37.789355, 37.784, 37.779861, 37.764847, 37.752))
+                                 "24th St Mission BART Station",
+                                 "22nd St CalTrain Station"),
+                        system = c("BART", "Ferry", "Caltrain", rep("BART", 5), "Caltrain"),
+                        longitude = c(-122.397222, -122.3937, -122.394444, -122.401942, -122.408, -122.413498, -122.420042, -122.4187, -122.3925),
+                        latitude = c(37.793056, 37.7955, 37.776389, 37.789355, 37.784, 37.779861, 37.764847, 37.752, 37.757222))
 
 # Function for visualizing trips at a designated time
 # Filter for rides taken at 8 AM and grouped by start time and start station
@@ -327,7 +328,8 @@ map_trips = function(hour, plot_title) {
     geom_point(data = df_transit,
                mapping = aes(x = longitude,
                              y = latitude, 
-                             color = system)) +
+                             shape = system),
+               size = 2) +
     facet_grid(. ~ type) +
     scale_x_continuous(limits = c(-122.45, -122.375)) +   # trim x-axis range
     scale_y_continuous(limits = c(37.74, 37.81)) +   # trim y-axis range
@@ -337,7 +339,7 @@ map_trips = function(hour, plot_title) {
     scale_alpha_continuous("Number of Rides",
                            range = c(0.1, 0.8),
                            breaks = seq(0, 10000, by = 1000)) +   # control transparency
-    scale_color_discrete("Transit System")
+    scale_shape_discrete("Transit Systems") +
       ggtitle(plot_title) +
     theme_void()
 }
