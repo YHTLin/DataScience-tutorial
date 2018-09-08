@@ -13,7 +13,7 @@ setwd("C:/Users/Tony Lin/Desktop/DataScience-tutorial/fordgobike/")
 
 
 ## Highlights
-* The number of rides more than doubled from January to June of 2018.
+* The number of rides per month more than doubled from January to June of 2018.
 * Monthly and yearly subscribers completed more than five times the number of rides compared to customers who hold single-use or day-ride passes.
 * The ratio of male to female users is 3:1.
 * The median age of users is 35 with a standard deviation of 10.5.
@@ -203,7 +203,7 @@ Take note that `r sum(is.na(df$member_age))` data points are omitted from the pl
 
 ### Distribution of Ride Duration
 
-The bike share system offers a short-term mode of transport, and this is reflected in its pricing structure. 30-minute and 45-minute time limits are imposed on the customers and subscribers, respectively, with a $3 fee for every additional 15 minutes. To avoid surcharges, I hypothesize that most rides are below the prescribed limit.
+The bike share system offers a short-term mode of transport, and this is reflected in its pricing structure. 30-minute and 45-minute time limits are imposed on the customers and subscribers, respectively, with a $3 fee for every additional 15 minutes. To avoid surcharges, I hypothesize that most rentals are below the prescribed limit.
 
 ```{r warning=FALSE}
 # Plot histogram
@@ -245,7 +245,7 @@ A bimodal curve with peaks at 8 AM and 5 PM confirms my gut instinct that the bi
 
 ### GoBike Station Usage at Peak Hours
 
-Given our analysis of peak usage hours, one tempting question is whether we can find a pattern of travel 
+Given the increased usage during commute hours, one may wonder if any ride pattern exists and can be detected at those times. We will focus our investigation on rides in San Francisco. Before diving in, here are all the active stations in the city:
 
 ```{r warning=FALSE, message=FALSE}
 library(ggmap)   # for retreiving Google Maps
@@ -268,27 +268,31 @@ ggmap(SFmap) +
              color = "red") +
   scale_x_continuous(limits = c(-122.45, -122.375)) +   # trim x-axis range
   scale_y_continuous(limits = c(37.74, 37.81)) +   # trim y-axis range
-  theme_void()
+  theme_void()   # suppress axes
 ```
 
+Docks are peppered throughout San Francisco with a fairly homogeneous spread. At the heart of the coverage area is South of Market, home to Uber and Twitter Headquarters. Now that we have a sense of the bike station locations, we will move forward with the goal of visualizing the start and end points of bike trips at a specific hour. This was implemented using the code below:
 
 ```{r warning=FALSE, message=FALSE}
 # Coordinates for stations of major transit systems
-df_transit = data.frame(name = c("Embarcadeo BART Station", 
-                                 "SF Ferry Building", 
-                                 "King St CalTrain Station", 
+df_transit = data.frame(name = c("Embarcadeo BART Station",   # station names
                                  "Montgomery BART Station", 
                                  "Powell BART Station", 
                                  "Civic Center BART Station", 
-                                 "16th St Mission BART Station",
-                                 "24th St Mission BART Station",
-                                 "22nd St CalTrain Station"),
-                        system = c("BART", "Ferry", "Caltrain", rep("BART", 5), "Caltrain"),
-                        longitude = c(-122.397222, -122.3937, -122.394444, -122.401942, -122.408, -122.413498, -122.420042, -122.4187, -122.3925),
-                        latitude = c(37.793056, 37.7955, 37.776389, 37.789355, 37.784, 37.779861, 37.764847, 37.752, 37.757222))
+                                 "16th St Mission BART Station", 
+                                 "24th St Mission BART Station", 
+                                 "King St CalTrain Station",
+                                 "22nd St CalTrain Station",
+                                 "Ferry Building"),
+                        system = c(rep("BART", 6), rep("Caltrain", 2), "Ferry"),   # transit system
+                        longitude = c(-122.3972, -122.4019, -122.4080,   # coordinates
+                                      -122.4135, -122.4200, -122.4187, 
+                                      -122.3944, -122.3925, -122.3937),   
+                        latitude = c(37.79306, 37.78936, 37.78400, 
+                                     37.77986, 37.76485, 37.75200, 
+                                     37.77639, 37.75722, 37.79550))
 
 # Function for visualizing trips at a designated time
-# Filter for rides taken at 8 AM and grouped by start time and start station
 map_trips = function(hour, plot_title) {
   # hour = a character of lenth one indicating the hour of interest (e.g. "07" for 7 AM and "15" for 3 PM)
   # plot_title = a character of length one indicating title of plot
@@ -319,17 +323,17 @@ map_trips = function(hour, plot_title) {
   
   # Plot trips
   ggmap(SFmap) +
-    geom_point(data = df_peak, 
+    geom_point(data = df_peak,   # plot stations
                mapping = aes(x = station_longitude, 
                              y = station_latitude, 
                              size = rides,   # scale point size by number of rides
                              alpha = rides),   # scale point transparency size by number of rides
                color = "red") +
-    geom_point(data = df_transit,
+    geom_point(data = df_transit,   # plot transit systems
                mapping = aes(x = longitude,
                              y = latitude, 
                              shape = system),
-               size = 2) +
+               size = 2.5) +
     facet_grid(. ~ type) +
     scale_x_continuous(limits = c(-122.45, -122.375)) +   # trim x-axis range
     scale_y_continuous(limits = c(37.74, 37.81)) +   # trim y-axis range
@@ -341,20 +345,21 @@ map_trips = function(hour, plot_title) {
                            breaks = seq(0, 10000, by = 1000)) +   # control transparency
     scale_shape_discrete("Transit Systems") +
       ggtitle(plot_title) +
-    theme_void()
+    theme_void()   # suppress axes
 }
 ```
 
 
+
 ```{r warning=FALSE, message=FALSE}
 # Plot trips at 8 AM
-map_trips("08", "8 AM Trips")
+map_trips("08", "Bike Trips at 8 AM")
 ```
 
 
 ```{r warning=FALSE, message=FALSE}
 # Plot trips at 5 PM
-map_trips("17", "5 PM Trips")
+map_trips("17", "Bike Trips at 5 PM")
 ```
 
 
