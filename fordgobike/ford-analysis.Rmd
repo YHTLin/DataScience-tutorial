@@ -243,7 +243,6 @@ ggplot(hour, aes(x = start_hour, y = total, group = 1)) +
 
 A bimodal curve with peaks at 8 AM and 5 PM confirms my gut instinct that the bike share system is busiest during commute hours. Along the same lines, it should not come as a surprise that the quietest times are in the wee hours of the night.
 
-
 ### GoBike Station Usage at Peak Hours
 
 Given our analysis of peak usage hours, one tempting question is whether we can find a pattern of travel 
@@ -274,8 +273,21 @@ ggmap(SFmap) +
 
 
 ```{r warning=FALSE, message=FALSE}
+# Coordinates for stations of major transit systems
+df_transit = data.frame(name = c("Embarcadeo BART Station", 
+                                 "SF Ferry Building", 
+                                 "CalTrain Station", 
+                                 "Montgomery BART Station", 
+                                 "Powell BART Station", 
+                                 "Civic Center BART Station", 
+                                 "16th St Mission BART Station",
+                                 "24th St Mission BART Station"),
+                        longitude = c(-122.397222, -122.3937, -122.394444, -122.401942, -122.408, -122.413498, -122.420042, -122.4187),
+                        latitude = c(37.793056, 37.7955, 37.776389, 37.789355, 37.784, 37.779861, 37.764847, 37.752))
+
 # Function for visualizing trips at a designated time
 # Filter for rides taken at 8 AM and grouped by start time and start station
+library(ggrepel)   # for labeling stations
 map_trips = function(hour, plot_title) {
   # hour = a character of lenth one indicating the hour of interest (e.g. "07" for 7 AM and "15" for 3 PM)
   # plot_title = a character of length one indicating title of plot
@@ -312,11 +324,12 @@ map_trips = function(hour, plot_title) {
                              size = rides,   # scale point size by number of rides
                              alpha = rides),   # scale point transparency size by number of rides
                color = "red") +
-    geom_point(data = df_stations,   # mark all stations 
-               mapping = aes(x = start_station_longitude, 
-                             y = start_station_latitude),
-               size = 0.8,
-               color = "blue") +
+    geom_point(data = df_transit,
+               mapping = aes(x = longitude,
+                             y = latitude,
+                             label = name),
+               size = 0.8) +
+
     facet_grid(. ~ type) +
     scale_x_continuous(limits = c(-122.45, -122.375)) +   # trim x-axis range
     scale_y_continuous(limits = c(37.74, 37.81)) +   # trim y-axis range
