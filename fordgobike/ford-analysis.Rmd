@@ -5,7 +5,7 @@ date: "September 9th, 2018"
 output: html_document
 ---
 
-Congested streets and slow-crawling traffic are a fact of life in many metropolitan areas, such as New York City, Los Angeles, and Chicago. Bike sharing is an innovative solution for such problems, and it works by dispersing a large fleet of publicly-available bikes throughout crowded cities for personal transport. Implemented in 2013, Ford GoBike is the first bike-sharing system introduced in the US West Coast. Its 540 stations and 7,000 bikes sprawl across five cities in the San Francisco Bay Area. A docked bike is checked out at any station and must be returned to a station when the trip is complete. As an avid GoBike user and a data fanatic, I am excited to explore, using R, the trip data that has been collected in 2018.
+Congested streets and slow-crawling traffic are a fact of life in many metropolitan areas, such as New York City, Los Angeles, and Chicago. Bike sharing is an innovative solution for such problems, and it works by dispersing a large fleet of publicly-available bikes throughout crowded cities for personal transport. Implemented in 2013, Ford GoBike is the first bike-sharing system introduced in the US West Coast. Its 540 stations and 7,000 bikes sprawl across five cities in San Francisco Bay Area. A docked bike can be checked out at any station and must be returned to a station when the trip is complete. As an avid GoBike user and a data fanatic, I am excited to explore, using R, the trip data that has been collected in 2018.
 
 ```{r echo=FALSE}
 setwd("C:/Users/Tony Lin/Desktop/DataScience-tutorial/fordgobike/")
@@ -13,20 +13,21 @@ setwd("C:/Users/Tony Lin/Desktop/DataScience-tutorial/fordgobike/")
 
 
 ## Highlights
+
 * The number of rides per month more than doubled from January to June of 2018.
-* Monthly and yearly subscribers completed more than five times the number of rides compared to customers who hold single-use or day-ride passes.
+* Monthly and yearly subscribers have completed more than five times the number of rides compared to customers who hold single-use or day-ride passes.
 * The ratio of male to female users is 3:1.
 * The median age of users is 35 with a standard deviation of 10.5.
 * More than 90% of the rides are under 30 minutes.
-* The peak hours across all rides in 2018 are 8 AM and 5 PM, which align with the typical working hours.
-* Bike sharing is likely a secondary means of transportation behind major transit systems, such as the Bay Area Rapid Transit, Caltrain, and San Francisco Ferry.
+* The peak hours across all rides in 2018 are 8 AM and 5 PM, which align with normal working hours.
+* The bike share system in San Francisco is popular among those who commute from outside of the city for work.
 
 ## Data Acquisition
 
-First, I downloaded the [system data](https://www.fordgobike.com/system-data) from the Ford GoBike website and saved it in my working directory. Currently, eight data files are available online, a collective file for 2017 and one for each month of 2018 up to August. In this analysis, I will solely focus on data that has been generated in 2018, up to August.
+First, I downloaded the [system data](https://www.fordgobike.com/system-data) from the Ford GoBike website and saved them in my working directory. Currently, eight data files are available online, a collective file for 2017 and one for each month of 2018 up to August. In this analysis, I will solely focus on data that has been generated so far in 2018.
 
 ```{r}
-# List of data files
+# List of data file names
 file_names = list.files(pattern = ".csv")
 file_names
 ```
@@ -38,7 +39,7 @@ To read the files into R, I iterate through `file_names` using the `lapply` func
 df_list = lapply(file_names,
                  function(x) read.csv(x, stringsAsFactors = FALSE))
 
-# Assign name to data frames
+# Assign names to data frames in the list
 names(df_list) = file_names
 ```
 
@@ -47,14 +48,14 @@ names(df_list) = file_names
 
 ### Aggregate Data into a Single Data Frame
 
-Let's look at the headers of the first three data frames in `df_list`:
+Let's look at the headers of a data frame in `df_list`:
 
 ```{r}
-# Extract column names from the first 3 data frames
-head(lapply(df_list, names), 3)
+# Extract column names from the first data frame
+names(df_list[[1]])
 ```
 
-Information on ride duration, starting and ending time/location, and usership are provided. Notice that the data contains a column called `"bike_share_for_all_trip"`, which tracks members who are enrolled in the Bike Share for All program for low-income residents.
+Information on ride duration, starting and ending time/location, and user descriptions are provided. Notice that the data contains a column called `"bike_share_for_all_trip"`, which tracks members who are enrolled in the [Bike Share for All](https://www.fordgobike.com/pricing/bikeshareforall) program for low-income residents.
 
 We will collapse the data frames into one and examine the data structure:
 
@@ -75,51 +76,49 @@ df = bind_rows(df_list)
 glimpse(df)
 ```
 
-### Format Data Types
+### Format Data Structure
 
-Data cleaning is essential for downstream analysis. This entails formating the columns into appropriate data types and extracting essential data. First, I will isolate the hour, day , and month from `start_time` for visualizing bike usage over time. In addition, I will convert `member_birth_year` into `member_age`. Moreover, I will convert `duration_sec` into `duration_min`. Finally, the `character` columns should take on type `factor`.
+Data cleaning is essential for downstream analysis. This entails formatting the columns into appropriate data types and extracting essential data. First, I will isolate the hour, day of the week, and month from `start_time` for visualizing bike usage over time. In addition, I will convert `member_birth_year` into `member_age`. Moreover, I will convert `duration_sec` into `duration_min`. Finally, columns of type `character` should take on type `factor`.
 
 ```{r warning=FALSE}
-# Extract day and month from start_time
+# Format data structure
+library(stringr)   # for regular expression
+
 df = df %>%
+  # Extract day and month from start_time
   mutate(start_month = sub(" .*", "", start_time)) %>%
   mutate(start_month = as.POSIXct(start_month)) %>%
   mutate(start_day = weekdays(start_month)) %>%
-  mutate(start_month = format(start_month, "%B"))
+  mutate(start_month = format(start_month, "%B")) %>%
 
-# Extract hour from start_time
-library(stringr)   # for regular expression
-df = df %>%
+  # Extract hour from start_time
   mutate(start_hour = sub("^.{11}", "", start_time)) %>%
-  mutate(start_hour = str_extract(start_hour, "^[0-9]{2}"))
+  mutate(start_hour = str_extract(start_hour, "^[0-9]{2}")) %>%
 
-# Convert birth year to age
-df = df %>%
-  mutate(member_age = 2018 - member_birth_year)
+  # Convert birth year to age
+  mutate(member_age = 2018 - member_birth_year) %>%
 
-# Convert duration_sec to duration_min
-df = df %>%
-  mutate(duration_min = duration_sec / 60)
+  # Convert duration_sec to duration_min
+  mutate(duration_min = duration_sec / 60) %>%
 
-# Convert characters to factors
-df = df %>%
-  mutate_if(is.character, as.factor)
+  # Convert characters to factors
+  mutate_if(is.character, as.factor) %>%
 
-# Remove columns not used in the analysis
-df = select(df, -c(start_time, end_time, start_station_id, end_station_id, bike_id, member_birth_year, duration_sec))
+  # Remove columns not used in the analysis
+  select(-c(start_time, end_time, start_station_id, end_station_id, bike_id, member_birth_year, duration_sec))
 
 # Glimpse at cleaned df
 glimpse(df)
 ```
 
-The cleaned data frame contains 13 descriptors for over a million rides.
+The cleaned data frame contains 14 descriptors for over a million rides.
 
 
 ## Data Analysis
 
 ### Bike Usage by Month and by Day in 2018
 
-To start, let's examine the bike usage over time in 2018:
+To start, we will examine the bike usage over time in 2018:
 
 ```{r}
 # Organize month
@@ -129,14 +128,14 @@ df$start_month = factor(df$start_month,
 # Count usage by month
 month_counts = table(df$start_month)
 
-# Plot barplot
+# Plot bar graph
 bar = barplot(month_counts,
               ylim = c(0, 220000),
               xlab = "Months in 2018",
               ylab = "Number of Rides",
               main = "Bike Usage by Month",
-              cex.names = 0.95,
-              cex.axis = 0.95)
+              cex.names = 0.8,
+              cex.axis = 0.8)
 text(x = bar, y = month_counts,   # Add labels
      label = month_counts, pos = 3, cex = 0.8, col = "red")  
 ```
@@ -146,29 +145,29 @@ text(x = bar, y = month_counts,   # Add labels
 df$start_day = factor(df$start_day,
                       levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"))
 
-# Count usage by hour
+# Count usage by day
 day_counts = table(df$start_day)
 
-# Plot barplot
+# Plot bar graph
 bar = barplot(day_counts,
               ylim = c(0, 230000),
               xlab = "Day of the Week",
               ylab = "Number of Rides",
               main = "Bike Usage by Day of the Week",
-              cex.names = 0.9,
-              cex.axis = 0.9)
+              cex.names = 0.8,
+              cex.axis = 0.8)
 text(x = bar, y = day_counts,   # Add labels
      label = day_counts, pos = 3, cex = 0.8, col = "red")  
 ```
 
-The first plot shows a consistent growth in the number of rides over the months, except in August. Six months into 2018, the bike usage more than doubled. In addition, there's a large increase in the number of rides from April to May, which may be associated with warmer weather in the summer months along with growing adoption of the bike-sharing service. The second plot shows that the usage over weekdays is greater than over weekends.
+The first figure shows a consistent growth in the number of rides over the months with the exception of August. Six months into 2018, the bike usage more than doubled. In addition, there's a large increase in the number of rides from April to May, which may be associated with warmer weather in the summer months along with growing adoption of the bike-sharing service. The second figure shows that the usage over weekdays is greater than over weekends.
 
 ### Bike Usage by Customers and Subscribers
 
-Next, I will stratify the barplot by `user_type` to reveal information on the GoBike users. A customer is someone who holds a single-ride or or day pass while a subscriber is a holder of a monthly or annual pass.
+Next, I will stratify the bar chart by `user_type` to reveal information on GoBike users. A customer is someone who holds a single-ride or day pass while a subscriber carries a monthly or annual pass.
 
 ```{r}
-# Plot barplot
+# Plot bar graph
 library(ggplot2)   # for plotting functions
 ggplot(df, aes(start_month)) + 
   geom_bar() +
@@ -184,7 +183,7 @@ It is evident that the majority of the rides are made by subscribers while only 
 
 ### Bike Usage by Gender
 
-In my experience, the bikes are predominately operated by males. Let's test this intuition and see whether the gender composition of users evolved over time:
+In my experience, the bikes are predominately operated by males. Let's test this intuition and see whether the gender composition of users have evolved over time:
 
 ```{r}
 # Organize data by gender
@@ -202,11 +201,11 @@ ggplot(df_gender, aes(start_month, fill = member_gender)) +
   theme_minimal()
 ```
 
-There are roughly three times as many male as female users, and the proportions have not changed over time.
+There are roughly three times as many male as female users, and the proportions have remained steady over time.
 
 ### Distribution of the Age of Users
 
-We have found that male users outnumber the female users. Now, we will examine the distribution of the age of our cohort. It is important to be aware that our metric is "number of rides" not "number of users." That is to say the height of the bins is a function of both the number of users **and** frequency of use by individuals in a given age range. For privacy concerns, user IDs are not attached to the online ride data.
+We have found that male users outnumber the female users. Now, we will examine the distribution of the age of our cohort. It is important to be aware that our metric is "number of rides" not "number of users." That is to say the height of the bins is a function of both the number of users **and** frequency of use by individuals in a given age group. For privacy reasons, user IDs are not available to the public.
 
 ```{r warning=FALSE}
 # Plot histogram
@@ -220,11 +219,11 @@ ggplot(df, aes(member_age)) +
   theme_minimal()
 ```
 
-Take note that `r sum(is.na(df$member_age))` data points are omitted from the plot because age was not provided by the user. Furthermore, there is reason to question the validity of the self-reported age since the oldest user is recorded as being `r max(df$member_age, na.rm = TRUE)`. Nonetheless, the distribution indicates that the age of the majority of users ranges from mid-twenties to mid-thirties, with a median of `r median(df$member_age, na.rm = TRUE)` and mean of `r round(mean(df$member_age, na.rm = TRUE), 1)`.
+Take note that `r sum(is.na(df$member_age))` data points are omitted from the plot because age was not provided and that the service is restricted to those 18 years or older. Furthermore, there is reason to question the validity of the self-reported age since the oldest user is recorded as being `r max(df$member_age, na.rm = TRUE)`. Nonetheless, the distribution indicates that the ages of the majority of users range from mid-twenties to mid-thirties, with a median of `r median(df$member_age, na.rm = TRUE)` and mean of `r round(mean(df$member_age, na.rm = TRUE), 1)`.
 
 ### Distribution of Ride Duration
 
-The bike-share system offers a short-term mode of transport, and this is reflected in its pricing structure. 30-minute and 45-minute time limits are imposed on the customers and subscribers, respectively, with a $3 fee for every additional 15 minutes. To avoid surcharges, I hypothesize that most rentals are below the prescribed limit.
+The bike share system offers a short-term mode of transport, and this is reflected in its pricing structure. 30-minute and 45-minute time limits are imposed on the customers and subscribers, respectively, with a $3 fee for every additional 15 minutes. To avoid surcharges, I hypothesize that most rentals are below the prescribed limit.
 
 ```{r warning=FALSE}
 # Plot histogram
@@ -239,11 +238,11 @@ ggplot(df, aes(duration_min)) +
   theme(axis.text.x = element_text(angle = 90))   # Rotate x-axis labels
 ```
 
-Indeed, 90% of the rides are below `r quantile(df$duration_min, 0.9)` minutes and 97% are below `r quantile(df$duration_min, 0.9)`, well within the 30- and 45-minute period. The distribution is heavily skewed to the right, reinforcing the idea that bikes are generally used for a short amount of time.
+Indeed, 90% of the rides are below `r quantile(df$duration_min, 0.9)` minutes and 97% are below `r quantile(df$duration_min, 0.97)`, well within the 30- and 45-minute period. The distribution is heavily skewed to the right, reinforcing the idea that the bikes are generally used for short trips.
 
 ### Bike Usage by Hour
 
-GoBikes are an integral part of my daily commute to work. I suspect that many others use it for the same reason. Let's explore this by tracking bike usage by the hour:
+The GoBike is an integral part of my daily commute to work. I suspect that many others use it for the same purpose. Let's explore this by tracking bike usage by the hour:
 
 ```{r}
 # Organize usage by hour
@@ -251,7 +250,7 @@ hour = df %>%
   group_by(start_hour) %>%
   summarise(total = n())
 
-# Plot barplot
+# Plot line graph
 ggplot(hour, aes(x = start_hour, y = total, group = 1)) + 
   geom_line() +
   geom_point(color = "red") +
@@ -262,26 +261,26 @@ ggplot(hour, aes(x = start_hour, y = total, group = 1)) +
 
 ```
 
-A bimodal curve with peaks at 8 AM and 5 PM confirms my gut instinct that the bike-share system is busiest during commute hours. Along the same lines, it should not come as a surprise that the quietest times are in the wee hours of the night.
+A bimodal curve with peaks at 8 AM and 5 PM confirms my gut instinct that the bike share system is busiest during commute hours. Along the same lines, it should not come as a surprise that the quietest times are in the wee hours of the night.
 
 ### Station Usage at Peak Hours
 
 Given the increased usage during commute hours, one may wonder if any ride pattern exists and can be detected at those times. We will focus our investigation on rides in San Francisco. I predict that many people are commuting to the city for work and, therefore, bike rentals will concentrate near major transit stations during the hours of 8 AM and 5 PM.
 
-For those residing in the East Bay, a rail system called Bay Area Rapid Transit (BART) offers an efficent way into the city. Alternatively, a transbay bus service picks up from the East Bay and drops off at the Transbay Bus Terminal. Yet another option is the ferry that connects Oakland, Alameda, and Vallejo to San Francisco. For those living in the South Bay (San Jose, for example), a rail system called Caltrain is a popular choice. See the map of San Francisco Bay Area below for reference.
+For those residing in the East Bay, a rail system called Bay Area Rapid Transit (BART) offers an efficient way into the city. Alternatively, a trans-bay bus service picks up from the East Bay and drops off at the Transbay Bus Terminal in San Francisco. Yet another option is the ferry that connects Oakland, Alameda, and Vallejo to the city. For those living in the South Bay (San Jose, for example), a rail system called Caltrain is a popular choice. See the map of the Bay Area below for reference.
 
 ```{r warning=FALSE, message=FALSE}
-library(ggmap)   # for retreiving Google Maps
+library(ggmap)   # for retreiving and plotting Google Maps
 
 # Obtain map of San Francisco Bay Area
-BayMap = get_map("San Francisco Bay Area",
+BayMap = get_map("San Francisco Bay Area", 
                  maptype = "terrain",
                  source = "google",
                  zoom = 9)
 
 # Plot map and label stations
 ggmap(BayMap) +
-  geom_text(x = -122.270833, y = 37.804444, label = c("Oakland"), size = 3, color = "gray40") +
+  geom_text(x = -122.270833, y = 37.804444, label = c("Oakland"), size = 3.1, color = "gray40") +
   scale_x_continuous(limits = c(-122.75, -121.75)) +   # trim x-axis range
   scale_y_continuous(limits = c(37.25, 38.15)) +   # trim y-axis range
   theme_void()   # suppress axes
@@ -296,10 +295,10 @@ SFmap = get_map("San Francisco",
                 source = "google",
                 zoom = 13)
 
-# Summarize data to report number of rides while grouping by starting time and location
+# Identify all unique stations
 df_stations = df %>%
-  group_by(start_hour, start_station_longitude, start_station_latitude) %>%
-  summarise(rides = dplyr::n())
+  group_by(start_station_longitude, start_station_latitude) %>%
+  slice(1)
 
 # Plot map and label stations
 ggmap(SFmap) +
@@ -407,12 +406,12 @@ map_trips("08", "Bike Trips at 8 AM")
 map_trips("17", "Bike Trips at 5 PM")
 ```
 
-In the morning, a high volume of rides start near key transit stations as well as the outskirts of the city and finish in downtown San Francisco and the Financial District. Notably, a large number of rides begin at the northernmost Caltrain and BART station and the ferry stop. This is consistent with my prediction that many bike-share users commute from outside of the city and take rides to bridge the gap between transit terminals and their workplaces. At 5 PM, we observe a complete reversal of the trends. The bikes are taken out of the business centers to transit stations and suburban parts of the town.
+In the morning, a high volume of rides start near key transit stations as well as the outskirts of the city and finish in downtown San Francisco and the Financial District. Notably, a large number of rides begin at the northernmost Caltrain and BART station and the ferry stop. This is consistent with my prediction that many bike share users commute from outside of the city and rely on bikes to bridge the gap between transit terminals and their workplaces. At 5 PM, we observe a complete reversal of the trend. The bikes move out of the business centers to transit stations and the suburban parts of town.
 
-One important caveat is that the current analysis includes all trips, even those on weekends. Therefore, one may argue that the patterns are attributed to weekend getaways to San Francisco. While a valid point, our previous analyses reduce the weight of this concern. The bar chart on **Bike Usage by Day of the Week** shows that more rides are made on the weekdays than weekends. In addition, the line plot on **Total Rides by Hour** shows peak usage at 8 AM and 5 PM. Both suggest that bike sharing is a mean of commuting to work. Even though the weekend data certainly confound our results, it is unlikely that they dictate the emerged trends.
+One important caveat is that the current analysis includes all trips, even those on weekends. Therefore, one may argue that the morning and afternoon ride patterns are influenced by weekend getaways to San Francisco. While a valid point, our previous analyses reduce the weight of this concern. The bar chart for **Bike Usage by Day of the Week** shows that more rides are made on the weekdays than weekends. In addition, the line plot for **Total Rides by Hour** shows peak usage at 8 AM and 5 PM. Both suggest that shared bikes are employed as a mean of commuting to work. Even though the weekend data certainly confound our results, it is unlikely that they dictate the emerged trends.
 
 ## Closing Remarks
 
-I am grateful for those who have made it to the end of this lengthy tutorial. I had an absolute blast probing the data on bike-share system in San Francisco Bay Area. 
+Huge respect for those who have made it to the end of this lengthy tutorial. I had an absolute blast probing the data on the bike share system in San Francisco Bay Area. 
 
-I encourage those galvanized by this work to explore on their own. Ford GoBike has a cousin called [Citi Bike](https://www.citibikenyc.com/system-data) that operates in New York City. The system in the Big Apple is more mature and established with data records going back to 2013.
+I encourage those galvanized by this work to explore further on their own. Ford GoBike has a cousin called [Citi Bike](https://www.citibikenyc.com/system-data) that operates in New York City, of which the system is more established and mature with data records going back to 2013. Time for data mining!
