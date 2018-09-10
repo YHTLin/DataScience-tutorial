@@ -5,7 +5,9 @@ date: "September 9th, 2018"
 output: html_document
 ---
 
-Congested streets and slow-crawling traffic are a fact of life in many metropolitan areas, such as New York City, Los Angeles, and Chicago. Bike sharing is an innovative solution for such problems, and it works by dispersing a large fleet of publicly-available bikes throughout crowded cities for personal transport. Implemented in 2013, Ford GoBike is the first bike-sharing system introduced in the US West Coast. Its 540 stations and 7,000 bikes sprawl across five cities in San Francisco Bay Area. A docked bike can be checked out at any station and must be returned to a station when the trip is complete. As an avid GoBike user and a data fanatic, I am excited to explore, using R, the trip data that has been collected in 2018.
+Congested streets and slow-crawling traffic are a fact of life in many metropolitan areas, such as New York City, Los Angeles, and Chicago. Bike sharing is an innovative solution for such problems, and it works by dispersing a large fleet of publicly-available bikes throughout crowded cities for personal transport. 
+
+Implemented in 2013, Ford GoBike is the first bike-sharing system introduced in the US West Coast. Its 540 stations and 7,000 bikes sprawl across five cities in San Francisco Bay Area. A docked bike can be checked out at any station and must be returned to a station when the trip is complete. As an avid GoBike user and a data fanatic, I am excited to explore, using R, the trip data that has been collected in 2018.
 
 ```{r echo=FALSE}
 setwd("C:/Users/Tony Lin/Desktop/DataScience-tutorial/fordgobike/")
@@ -154,10 +156,12 @@ bar = barplot(day_counts,
               xlab = "Day of the Week",
               ylab = "Number of Rides",
               main = "Bike Usage by Day of the Week",
-              cex.names = 0.8,
-              cex.axis = 0.8)
+              cex.axis = 0.8,
+              xaxt = "n")
 text(x = bar, y = day_counts,   # Add labels
-     label = day_counts, pos = 3, cex = 0.8, col = "red")  
+     label = day_counts, pos = 3, cex = 0.8, col = "red") 
+text(x = bar, y = -6000, cex = 0.8,   # Rotate x-axis labels
+     labels = names(day_counts), srt = 45, adj = 1, xpd = TRUE)
 ```
 
 The first figure shows a consistent growth in the number of rides over the months with the exception of August. Six months into 2018, the bike usage more than doubled. In addition, there's a large increase in the number of rides from April to May, which may be associated with warmer weather in the summer months along with growing adoption of the bike-sharing service. The second figure shows that the usage over weekdays is greater than over weekends.
@@ -389,7 +393,8 @@ map_trips = function(hour, plot_title) {
                            range = c(0.1, 0.8),
                            breaks = seq(0, 10000, by = 1000)) +   # control transparency
     scale_shape_discrete("Transit Systems") +
-      ggtitle(plot_title) +
+    ggtitle(plot_title) +
+    #theme(plot.margin = grid::unit(c(-5, -5, -5, -5), "mm")) +   # trim margins
     theme_void()   # suppress axes
 }
 ```
@@ -406,12 +411,12 @@ map_trips("08", "Bike Trips at 8 AM")
 map_trips("17", "Bike Trips at 5 PM")
 ```
 
-In the morning, a high volume of rides start near key transit stations as well as the outskirts of the city and finish in downtown San Francisco and the Financial District. Notably, a large number of rides begin at the northernmost Caltrain and BART station and the ferry stop. This is consistent with my prediction that many bike share users commute from outside of the city and rely on bikes to bridge the gap between transit terminals and their workplaces. At 5 PM, we observe a complete reversal of the trend. The bikes move out of the business centers to transit stations and the suburban parts of town.
+At 8 AM, a high volume of rides start near key transit stations as well as the outskirts of the city and finish in downtown San Francisco and the Financial District. Notably, a large number of rides begin at the northernmost Caltrain and BART station and the ferry stop. This is consistent with my prediction that many bike share users commute from outside of the city and rely on bikes to bridge the gap between transit terminals and their workplaces. At 5 PM, we observe a complete reversal of the trend. The bikes move out of the business centers to transit stations and the suburban parts of town.
 
 One important caveat is that the current analysis includes all trips, even those on weekends. Therefore, one may argue that the morning and afternoon ride patterns are influenced by weekend getaways to San Francisco. While a valid point, our previous analyses reduce the weight of this concern. The bar chart for **Bike Usage by Day of the Week** shows that more rides are made on the weekdays than weekends. In addition, the line plot for **Total Rides by Hour** shows peak usage at 8 AM and 5 PM. Both suggest that shared bikes are employed as a mean of commuting to work. Even though the weekend data certainly confound our results, it is unlikely that they dictate the emerged trends.
 
 ## Closing Remarks
 
-Huge respect for those who have made it to the end of this lengthy tutorial. I had an absolute blast probing the data on the bike share system in San Francisco Bay Area. 
+Huge respect for those who have made it to the end of this long tutorial. I had an absolute blast probing the data on the bike share system in San Francisco Bay Area. 
 
-I encourage those galvanized by this work to explore further on their own. Ford GoBike has a cousin called [Citi Bike](https://www.citibikenyc.com/system-data) that operates in New York City, of which the system is more established and mature with data records going back to 2013. Time for data mining!
+I encourage those galvanized by this work to explore further on their own. Ford GoBike has a cousin called [Citi Bike](https://www.citibikenyc.com/) that operates in New York City, of which the system is more established and mature with [data records](https://www.citibikenyc.com/system-data) going back to 2013. Happy data mining!
