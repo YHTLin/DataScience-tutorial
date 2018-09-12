@@ -6,7 +6,12 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+setwd("C:/Users/Tony Lin/Desktop/DataScience-tutorial/tmt-proteomics/")
+```
+
+
+```{r setup, include=FALSE}
+df = read.delim("proteinGroups-tmt-experiment.txt", stringsAsFactors = F)
 ```
 
 ## R Markdown
