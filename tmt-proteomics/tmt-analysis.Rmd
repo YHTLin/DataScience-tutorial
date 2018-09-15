@@ -5,16 +5,16 @@ date: "September 11, 2018"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r}
 setwd("C:/Users/Tony Lin/Desktop/DataScience-tutorial/tmt-proteomics/")
 ```
 
 
-```{r setup, include=FALSE}
+```{r}
 df = read.delim("proteinGroups-tmt-experiment.txt", stringsAsFactors = F)
 ```
 
-```{r setup, include=FALSE}
+```{r warning=FALSE}
 library(dplyr)
 df = df %>%
   filter(Only.identified.by.site != "+") %>%
@@ -22,6 +22,25 @@ df = df %>%
   filter(Potential.contaminant != "+")
 ```
 
+```{r}
+library(dplyr)
+df = df %>%
+  filter(Only.identified.by.site != "+") %>%
+  filter(Reverse != "+") %>%
+  filter(Potential.contaminant != "+")
+```
+
+
+```{r}
+# Isolate the first UniProt Protein ID
+df$Protein = sub(";.*", "", df$Protein.IDs)
+
+# Isolate the first Protein name
+df$Protein.name = sub(";.*", "", df$Protein.names)
+
+# Isolate the first Gene ID
+df$Gene = sub(";.*", "", df$Gene.names)
+```
 
 ## R Markdown
 
