@@ -17,7 +17,7 @@ Again, the outline for this tutorial series is as follows:
 ## Missing Value Problem
 
 ```{r echo=FALSE}
-setwd("C:/Users/Tony Lin/Desktop/DataScience+/proteomics-series/")
+setwd("C:/Users/Tony Lin/Desktop/DataScience-tutorial/proteomics-series/")
 load("proteomics-1.RData")
 ```
 
