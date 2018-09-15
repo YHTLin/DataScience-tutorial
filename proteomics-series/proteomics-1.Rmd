@@ -121,7 +121,7 @@ hist(df$LFQ.intensity.Parental_bR1,
      main = "Distribution of Protein Intensity")
 ```
 
-The distribution is clearly skewed to the right with a few highly abundant proteins. To normalize the distribution, it is common practice to log<sub>2</sub> transform the intensity data.
+The distribution is clearly skewed to the right with a few highly abundant proteins. To normalize the distribution, it is common practice to log<sub>2</sub>-transform the intensity data.
 
 ```{r}
 # Assign column names to log2-transformed data
