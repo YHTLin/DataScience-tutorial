@@ -5,7 +5,7 @@ date: "August 27, 2018"
 output: html_document
 ---
 
-Welcome to **Part Two** of the three-part tutorial series on proteomics data analysis. The ultimate goal of this exercise is to identify proteins whose abundance is different bewteen the drug-resistant cells and the control. In other words, we are looking for a list of differentially regulated proteins that may shed light on how cells escape the cancer-killing action of a drug. In [**Part One**](https://datascienceplus.com/proteomics-data-analysis-1-3-data-acquisition-and-cleaning/), I have demonstrated the steps to acquiring a proteomics data set and performing data pre-processing. We will pick up from the cleaned data set and confront the missing value problem in proteomics.
+Welcome to **Part Two** of the three-part tutorial series on proteomics data analysis. The ultimate goal of this exercise is to identify proteins whose abundances are different between a drug-resistant cell line and a control. In other words, we are looking for a list of differentially regulated proteins that may shed light on how cells escape the cancer-killing action of a drug. In [**Part One**](https://datascienceplus.com/proteomics-data-analysis-1-3-data-acquisition-and-cleaning/), I have demonstrated the steps to acquire a proteomics data set and perform data pre-processing. We will pick up from the cleaned data set and confront the missing value problem in proteomics.
 
 Again, the outline for this tutorial series is as follows:
 
@@ -24,12 +24,16 @@ load("proteomics-1.RData")
 Although mass spectrometry-based proteomics has the advantage of detecting thousands of proteins from a single experiment, it faces certain challenges. One problem is the presence of missing values in proteomics data. To illustrate this, let's examine the first few rows of the log~2~-transformed and raw protein abundance values.
 
 ```{r message=FALSE, warning=FALSE}
-library(dplyr)
+library(dplyr)   # for data manipulation
+
+## View first 6 rows of the log2-transformed intensity
 head(select(df, Gene, starts_with("LOG2")))
+
+## View first 6 rows of the raw intensity
 head(select(df, Gene, starts_with("LFQ")))
 ```
 
-It is hard to miss the `-Inf`, which represent protein intensity measurements of 0 in the raw data set. We consider these data points as missing values, or a lack of quantification in the indicated samples. This is a common issue in proteomics experiments, and it arises due to sample complexity and randomness (or stochasticity) in sampling.
+It is hard to miss the `-Inf` values, which represent protein intensity measurements of 0 in the raw data set. These data points have missing values, or a lack of quantification in the indicated samples. This is a common issue in proteomic experiments, and it arises due to sample complexity and randomness (or stochasticity) in sampling.
 
 For example, imagine pouring out a bowl of Lucky Charms cereal containing a thousand different marshmallows. Let's say there is only one coveted rainbow marshmallow for every one thousand pieces. The likelihood of your bowl containing the rare shape is disappointingly low. In our situation, there are approximately 20,000 proteins expressed in a given cell, and many in low quantities. Hence, the probability of consistently capturing proteins with low expression across all experiments is small.
 
@@ -43,6 +47,8 @@ One of many filtering schemes is to keep proteins that are quantified in at leas
 ```{r}
 ## Data cleaning: Extract columns of interest
 df = select(df, Protein, Gene, Protein.name, starts_with("LFQ"), starts_with("LOG2"))
+
+## Display structure of df
 glimpse(df)
 ```
 
@@ -152,7 +158,7 @@ hist_sample(df.FN)
 
 ## Data Imputation
 
-After filtering and normalization, some missing values remain. How do we deal with them from here? The statistical approach designed to answer such a question is called imputation. For a thorough discussion of imputation on proteomics data sets, I highly recommend this [article](https://pubs.acs.org/doi/abs/10.1021/acs.jproteome.5b00981) in the Journal of Proteome Research. 
+After filtering and normalization, some missing values remain. How do we deal with them from here? The statistical approach designed to answer such a question is called imputation. For a thorough discussion of imputation on proteomic data sets, I highly recommend this [article](https://pubs.acs.org/doi/abs/10.1021/acs.jproteome.5b00981) in the Journal of Proteome Research. 
 
 Since missing values are associated with proteins with low levels of expression, we can substitute the missing values with numbers that are considered "small" in each sample. We can define this statistically by drawing from a normal distribution with a mean that is down-shifted from the sample mean and a standard deviation that is a fraction of the standard deviation of the sample distribution. Here's a function that implements this approach:
 
